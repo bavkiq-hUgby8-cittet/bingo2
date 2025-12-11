@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>🎰 Bingo dos Veloso</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Fredoka+One&family=Poppins:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        :root { --red: #ff6b6b; --cyan: #4ecdc4; --yellow: #ffe66d; --purple: #a855f7; --green: #22c55e; --blue: #3b82f6; }
+        body { font-family: 'Poppins', sans-serif; background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460); min-height: 100vh; color: #fff; overflow-x: hidden; touch-action: manipulation; }
+        
+        .header { padding: 15px 20px; background: rgba(0,0,0,.3); display: flex; justify-content: space-between; align-items: center; }
+        .logo { font-family: 'Bangers', cursive; font-size: 1.5rem; background: linear-gradient(135deg, #ffd700, #ff6b6b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .sala-nome { font-size: .8rem; color: rgba(255,255,255,.6); max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .container { padding: 15px; max-width: 500px; margin: 0 auto; }
+        .tela { display: none; }
+        .tela.active { display: block; }
+        
+        /* CADASTRO */
+        .cadastro-title { font-family: 'Bangers', cursive; font-size: 2.5rem; text-align: center; margin-bottom: 30px; background: linear-gradient(135deg, #ffd700, #ff6b6b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; margin-bottom: 8px; font-weight: 600; }
+        .form-group input { width: 100%; padding: 15px 20px; border: 2px solid rgba(255,255,255,.2); border-radius: 12px; background: rgba(255,255,255,.1); color: #fff; font-size: 1rem; }
+        .form-group input:focus { outline: none; border-color: var(--yellow); box-shadow: 0 0 20px rgba(255,230,109,.3); }
+        .form-group input::placeholder { color: rgba(255,255,255,.5); }
+        .foto-section { text-align: center; margin: 30px 0; }
+        .foto-preview { width: 120px; height: 120px; border-radius: 50%; background: rgba(255,255,255,.1); margin: 0 auto 15px; display: flex; align-items: center; justify-content: center; font-size: 3rem; overflow: hidden; border: 3px solid rgba(255,255,255,.3); }
+        .foto-preview img { width: 100%; height: 100%; object-fit: cover; }
+        .foto-buttons { display: flex; gap: 10px; justify-content: center; }
+        .btn-foto { padding: 10px 20px; border: 2px solid rgba(255,255,255,.3); border-radius: 10px; background: transparent; color: #fff; font-weight: 600; cursor: pointer; }
+        .btn-foto:active { background: rgba(255,255,255,.2); }
+        .info-cartelas { text-align: center; padding: 20px; background: rgba(255,215,0,.1); border-radius: 15px; margin: 20px 0; border: 1px solid rgba(255,215,0,.3); }
+        .btn-entrar { width: 100%; padding: 18px; background: linear-gradient(135deg, var(--green), #16a34a); border: none; border-radius: 15px; color: #fff; font-size: 1.2rem; font-weight: 700; cursor: pointer; box-shadow: 0 6px 20px rgba(34,197,94,.4); }
+        .btn-entrar:active { transform: scale(.98); }
+        
+        /* AGUARDO */
+        .aguardo-icon { font-size: 5rem; margin-bottom: 30px; animation: bounce 1s ease infinite; text-align: center; }
+        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-15px); } }
+        .aguardo-text { font-size: 1.5rem; margin-bottom: 20px; text-align: center; }
+        .aguardo-subtext { color: rgba(255,255,255,.6); text-align: center; }
+        
+        /* AVISO GLOBO */
+        .globo-girando-aviso { display: none; position: fixed; top: 70px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg, #f59e0b, #d97706); padding: 15px 30px; border-radius: 15px; font-weight: 700; z-index: 100; box-shadow: 0 10px 40px rgba(245,158,11,.5); animation: pulseAviso .5s ease infinite; text-align: center; }
+        .globo-girando-aviso.active { display: block; }
+        @keyframes pulseAviso { 0%, 100% { transform: translateX(-50%) scale(1); } 50% { transform: translateX(-50%) scale(1.05); } }
+        .globo-girando-aviso .icone { font-size: 1.5rem; margin-right: 10px; animation: spin 1s linear infinite; display: inline-block; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        
+        /* NAVEGAÇÃO */
+        .cartela-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding: 10px; background: rgba(255,255,255,.1); border-radius: 12px; }
+        .nav-btn { width: 44px; height: 44px; border-radius: 50%; background: rgba(255,255,255,.2); border: none; color: #fff; font-size: 1.5rem; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .nav-btn:active { background: rgba(255,255,255,.4); }
+        .nav-btn:disabled { opacity: .3; }
+        .cartela-info { text-align: center; }
+        .jogador-nome { font-weight: 700; font-size: 1.1rem; }
+        .cartela-numero { font-size: .9rem; color: rgba(255,255,255,.6); }
+        
+        /* CARTELAS */
+        .cartelas-wrapper { overflow: hidden; position: relative; }
+        .cartelas-container { display: flex; transition: transform .3s ease; }
+        .cartela { min-width: 100%; padding: 0 5px; }
+        .cartela-card { background: #fff; border-radius: 20px; padding: 15px; box-shadow: 0 10px 40px rgba(0,0,0,.3); }
+        .bingo-header { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 8px; }
+        .bingo-letra { text-align: center; font-family: 'Bangers', cursive; font-size: 1.8rem; font-weight: 700; padding: 8px 0; }
+        .bingo-letra:nth-child(1) { color: #ef4444; }
+        .bingo-letra:nth-child(2) { color: #f59e0b; }
+        .bingo-letra:nth-child(3) { color: #22c55e; }
+        .bingo-letra:nth-child(4) { color: #3b82f6; }
+        .bingo-letra:nth-child(5) { color: #a855f7; }
+        .cartela-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+        .numero { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: 700; background: #f8f9fa; color: #333; border: 3px solid #e9ecef; border-radius: 12px; cursor: pointer; transition: all .2s ease; user-select: none; }
+        .numero:active { transform: scale(.95); }
+        .numero.marcado { background: linear-gradient(135deg, #e63946, #c41e3a); color: #fff; border-color: #c41e3a; box-shadow: 0 4px 12px rgba(230,57,70,.4); animation: stamp .3s ease; }
+        @keyframes stamp { 0% { transform: scale(1); } 50% { transform: scale(1.15) rotate(5deg); } 100% { transform: scale(1) rotate(0); } }
+        .numero.coringa { background: linear-gradient(135deg, #ffd700, #ffa500); color: #333; border-color: #ff8c00; font-family: 'Bangers', cursive; font-size: 1.2rem; cursor: default; }
+        
+        /* CONTADOR */
+        .marcados-counter { display: flex; justify-content: center; align-items: center; gap: 5px; margin: 15px 0; flex-wrap: wrap; }
+        .marcado-dot { width: 12px; height: 12px; border-radius: 50%; background: #e9ecef; }
+        .marcado-dot.ativo { background: #e63946; }
+        .marcados-text { width: 100%; text-align: center; color: #666; font-size: .9rem; margin-top: 5px; }
+        
+        /* BOTÃO BINGO */
+        .btn-bingo { width: 100%; padding: 20px; font-size: 1.8rem; font-weight: 900; background: linear-gradient(135deg, #95a5a6, #7f8c8d); color: #fff; border: none; border-radius: 15px; cursor: not-allowed; margin-top: 15px; text-transform: uppercase; letter-spacing: 3px; }
+        .btn-bingo.ativo { background: linear-gradient(135deg, var(--green), #16a34a); cursor: pointer; animation: pulseBingo 1s ease infinite; box-shadow: 0 8px 30px rgba(34,197,94,.5); }
+        @keyframes pulseBingo { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.02); } }
+        .btn-bingo:active.ativo { transform: scale(.98); }
+        
+        /* SWIPE */
+        .swipe-hint { text-align: center; padding: 10px; color: rgba(255,255,255,.5); font-size: .9rem; }
+        .pagination-dots { display: flex; justify-content: center; gap: 8px; margin-top: 15px; }
+        .pagination-dot { width: 10px; height: 10px; border-radius: 50%; background: rgba(255,255,255,.3); cursor: pointer; }
+        .pagination-dot.active { background: #ffd700; transform: scale(1.2); }
+        
+        /* GANHADORES */
+        .ganhadores-aviso { margin: 15px 0; padding: 15px; background: linear-gradient(135deg, rgba(34,197,94,.2), rgba(22,163,74,.1)); border-radius: 15px; border: 2px solid var(--green); text-align: center; }
+        .ganhadores-aviso h4 { font-family: 'Fredoka One', cursive; color: var(--green); margin-bottom: 10px; }
+        .ganhadores-mini { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+        .ganhador-mini { display: flex; align-items: center; gap: 8px; padding: 5px 12px; background: rgba(255,255,255,.1); border-radius: 20px; font-size: .85rem; }
+        .ganhador-mini img { width: 25px; height: 25px; border-radius: 50%; }
+        
+        /* VERIFICAÇÃO */
+        .tela-verificacao { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,.9); z-index: 200; align-items: center; justify-content: center; flex-direction: column; text-align: center; padding: 40px; }
+        .tela-verificacao.active { display: flex; }
+        .verificacao-icon { font-size: 5rem; margin-bottom: 30px; animation: spin 2s linear infinite; }
+        .verificacao-text { font-size: 1.5rem; margin-bottom: 20px; }
+        
+        /* RESULTADO */
+        .tela-resultado { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, #1a1a2e, #16213e); z-index: 300; align-items: center; justify-content: center; flex-direction: column; text-align: center; padding: 40px; }
+        .tela-resultado.active { display: flex; }
+        .resultado-icon { font-size: 6rem; margin-bottom: 20px; }
+        .resultado-titulo { font-family: 'Bangers', cursive; font-size: 2.5rem; margin-bottom: 20px; }
+        .resultado-titulo.venceu { color: #ffd700; text-shadow: 0 5px 20px rgba(255,215,0,.5); }
+        .resultado-titulo.perdeu { color: #e74c3c; }
+        .resultado-msg { font-size: 1.2rem; color: rgba(255,255,255,.8); margin-bottom: 30px; }
+        .btn-voltar { padding: 15px 40px; background: linear-gradient(135deg, var(--blue), #2563eb); border: none; border-radius: 12px; color: #fff; font-size: 1.1rem; font-weight: 600; cursor: pointer; margin-top: 20px; }
+        
+        /* CONFETTI */
+        .confetti { position: fixed; width: 12px; height: 12px; top: -20px; animation: fall 3s linear infinite; z-index: 400; }
+        @keyframes fall { to { transform: translateY(100vh) rotate(720deg); } }
+        
+        /* BALÕES */
+        .balao-reacao { position: fixed; bottom: 150px; padding: 10px 15px; background: linear-gradient(135deg, rgba(34,197,94,.95), rgba(22,163,74,.95)); border-radius: 50px; display: flex; align-items: center; gap: 8px; animation: popBalao .5s cubic-bezier(.34,1.56,.64,1), fadeBalao .5s ease 2s forwards; box-shadow: 0 5px 20px rgba(34,197,94,.5); z-index: 150; }
+        @keyframes popBalao { 0% { transform: scale(0) translateY(50px); opacity: 0; } 100% { transform: scale(1) translateY(0); opacity: 1; } }
+        @keyframes fadeBalao { to { opacity: 0; transform: translateY(-30px) scale(.5); } }
+        .balao-foto { width: 35px; height: 35px; border-radius: 50%; object-fit: cover; border: 2px solid #fff; }
+        .balao-nome { font-weight: 700; color: #fff; font-size: .9rem; }
+        
+        /* TOAST */
+        .toast { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%) translateY(100px); padding: 15px 30px; background: rgba(0,0,0,.9); color: #fff; border-radius: 12px; font-weight: 600; z-index: 500; transition: transform .3s ease; }
+        .toast.active { transform: translateX(-50%) translateY(0); }
+        
+        /* LOADING */
+        .loading { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,.8); z-index: 600; align-items: center; justify-content: center; }
+        .loading.active { display: flex; }
+        .spinner { width: 50px; height: 50px; border: 4px solid rgba(255,255,255,.2); border-top-color: #ffd700; border-radius: 50%; animation: spin 1s linear infinite; }
+        
+        /* ERRO */
+        .tela-erro { text-align: center; padding: 60px 20px; }
+        .erro-icon { font-size: 5rem; margin-bottom: 20px; }
+        .hidden-input { display: none; }
+        
+        /* FIM DE JOGO */
+        .fim-jogo-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, #1a1a2e, #16213e); z-index: 250; align-items: center; justify-content: center; flex-direction: column; text-align: center; padding: 40px; }
+        .fim-jogo-overlay.active { display: flex; }
+        .fim-jogo-icon { font-size: 6rem; margin-bottom: 20px; }
+        .fim-jogo-titulo { font-family: 'Bangers', cursive; font-size: 2.5rem; color: var(--yellow); margin-bottom: 20px; }
+        .fim-jogo-vencedor { font-size: 1.3rem; margin-bottom: 30px; }
+        
+        /* RESPONSIVO */
+        @media (max-width: 350px) { .numero { font-size: 1.2rem; } .bingo-letra { font-size: 1.4rem; } .btn-bingo { font-size: 1.4rem; padding: 15px; } }
+        @media (min-width: 500px) { .numero { font-size: 2rem; } .bingo-letra { font-size: 2.2rem; } }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="logo">🎰 Bingo</div>
+        <div class="sala-nome" id="salaNome">...</div>
+    </header>
+
+    <div class="container">
+        <!-- CADASTRO -->
+        <div class="tela" id="telaCadastro">
+            <h1 class="cadastro-title">🎰 ENTRAR NO BINGO</h1>
+            <div class="form-group">
+                <label>Nome</label>
+                <input type="text" id="inputNome" placeholder="Seu nome" autocomplete="given-name">
+            </div>
+            <div class="form-group">
+                <label>Sobrenome</label>
+                <input type="text" id="inputSobrenome" placeholder="Seu sobrenome" autocomplete="family-name">
+            </div>
+            <div class="foto-section">
+                <div class="foto-preview" id="fotoPreview">📷</div>
+                <div class="foto-buttons">
+                    <button class="btn-foto" onclick="document.getElementById('inputFoto').click()">📸 Adicionar Foto</button>
+                </div>
+                <input type="file" id="inputFoto" class="hidden-input" accept="image/*" onchange="handleFoto(event)">
+            </div>
+            <div class="info-cartelas">
+                <p>🎫 Você receberá <strong id="qtdCartelas">3</strong> cartela(s)</p>
+            </div>
+            <button class="btn-entrar" onclick="entrarNoBingo()">🎮 ENTRAR NO JOGO</button>
+        </div>
+
+        <!-- AGUARDO -->
+        <div class="tela" id="telaAguardo">
+            <div class="aguardo-icon">⏳</div>
+            <h2 class="aguardo-text">Aguardando início...</h2>
+            <p class="aguardo-subtext">O operador iniciará o jogo em breve</p>
+            <div class="info-cartelas" style="margin-top:30px">
+                <p>🎫 Suas cartelas: <strong id="aguardoCartelas">3</strong></p>
+                <p>👥 Jogadores na sala: <strong id="aguardoJogadores">0</strong></p>
+            </div>
+        </div>
+
+        <!-- JOGO -->
+        <div class="tela" id="telaJogo">
+            <div class="globo-girando-aviso" id="globoGirandoAviso">
+                <span class="icone">🎱</span> GLOBO GIRANDO...
+            </div>
+
+            <div class="ganhadores-aviso" id="ganhadoresAviso" style="display:none">
+                <h4>🏆 Ganhadores</h4>
+                <div class="ganhadores-mini" id="ganhadoresMini"></div>
+            </div>
+
+            <div class="cartela-nav">
+                <button class="nav-btn" id="btnAnterior" onclick="cartelaAnterior()">◀</button>
+                <div class="cartela-info">
+                    <div class="jogador-nome" id="nomeJogador">Jogador</div>
+                    <div class="cartela-numero">Cartela <span id="cartelaAtualNum">1</span>/<span id="cartelaTotalNum">3</span></div>
+                </div>
+                <button class="nav-btn" id="btnProxima" onclick="proximaCartela()">▶</button>
+            </div>
+
+            <div class="cartelas-wrapper" id="cartelasWrapper">
+                <div class="cartelas-container" id="cartelasContainer"></div>
+            </div>
+
+            <div class="swipe-hint" id="swipeHint">👆 Deslize para ver outras cartelas</div>
+            <div class="pagination-dots" id="paginationDots"></div>
+
+            <button class="btn-bingo" id="btnBingo" onclick="gritarBingo()">🎉 BINGO!</button>
+        </div>
+
+        <!-- ERRO -->
+        <div class="tela" id="telaErro">
+            <div class="tela-erro">
+                <div class="erro-icon">😕</div>
+                <h2>Sala não encontrada</h2>
+                <p>Esta sala não existe ou foi encerrada.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- VERIFICAÇÃO -->
+    <div class="tela-verificacao" id="telaVerificacao">
+        <div class="verificacao-icon">🔍</div>
+        <h2 class="verificacao-text">Verificando seu BINGO...</h2>
+        <p>Aguarde o operador confirmar</p>
+    </div>
+
+    <!-- RESULTADO -->
+    <div class="tela-resultado" id="telaResultado">
+        <div class="resultado-icon" id="resultadoIcon">🎉</div>
+        <h2 class="resultado-titulo" id="resultadoTitulo">PARABÉNS!</h2>
+        <p class="resultado-msg" id="resultadoMsg">Você ganhou!</p>
+        <button class="btn-voltar" onclick="voltarJogo()">▶️ CONTINUAR JOGANDO</button>
+    </div>
+
+    <!-- FIM DE JOGO -->
+    <div class="fim-jogo-overlay" id="fimJogoOverlay">
+        <div class="fim-jogo-icon">🏆</div>
+        <h2 class="fim-jogo-titulo">FIM DO JOGO!</h2>
+        <p class="fim-jogo-vencedor" id="fimJogoVencedor"></p>
+    </div>
+
+    <div class="toast" id="toast"></div>
+    <div class="loading" id="loading"><div class="spinner"></div></div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyCPYcph6zvKD-pIrDSwlL378hJKQoz-r2I",
+            authDomain: "bingo-16f47.firebaseapp.com",
+            databaseURL: "https://bingo-16f47-default-rtdb.firebaseio.com",
+            projectId: "bingo-16f47",
+            storageBucket: "bingo-16f47.firebasestorage.app",
+            messagingSenderId: "549011622250",
+            appId: "1:549011622250:web:d86e8112d2d108f239fd13"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        let salaId = null, sala = null, jogadorId = null, jogador = null, cartelaAtual = 0, fotoBase64 = null;
+        let touchStartX = 0, touchEndX = 0, vibrando = false, ganhadores = [];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const p = new URLSearchParams(location.search);
+            salaId = p.get('sala');
+            if (!salaId) { mostrarErro(); return; }
+            const saved = localStorage.getItem('bingo_jogador_' + salaId);
+            if (saved) { jogadorId = saved; verificarJogadorExistente(); }
+            else { carregarSala(); }
+            setupSwipe();
+        });
+
+        const showToast = (msg) => { const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('active'); setTimeout(() => t.classList.remove('active'), 3000); };
+        const showLoading = () => document.getElementById('loading').classList.add('active');
+        const hideLoading = () => document.getElementById('loading').classList.remove('active');
+        const mostrarErro = () => { document.getElementById('telaCadastro').classList.remove('active'); document.getElementById('telaErro').classList.add('active'); };
+        const getDefaultAvatar = () => "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%234ecdc4' width='100' height='100'/><text x='50' y='60' text-anchor='middle' font-size='40'>👤</text></svg>";
+
+        async function carregarSala() {
+            showLoading();
+            try {
+                const snap = await db.ref('salas/' + salaId).once('value');
+                sala = snap.val();
+                if (!sala || !sala.ativa) { mostrarErro(); return; }
+                document.getElementById('salaNome').textContent = sala.nome;
+                document.getElementById('qtdCartelas').textContent = sala.cartelasPorJogador;
+                document.getElementById('telaCadastro').classList.add('active');
+            } catch (e) { showToast('Erro'); mostrarErro(); }
+            hideLoading();
+        }
+
+        async function verificarJogadorExistente() {
+            showLoading();
+            try {
+                const jSnap = await db.ref('jogadores/' + jogadorId).once('value');
+                jogador = jSnap.val();
+                if (!jogador || jogador.salaId !== salaId) { localStorage.removeItem('bingo_jogador_' + salaId); jogadorId = null; carregarSala(); return; }
+                const sSnap = await db.ref('salas/' + salaId).once('value');
+                sala = sSnap.val();
+                if (!sala || !sala.ativa) { mostrarErro(); return; }
+                document.getElementById('salaNome').textContent = sala.nome;
+                document.getElementById('telaCadastro').classList.remove('active');
+                sala.jogando ? iniciarJogo() : mostrarAguardo();
+                escutarMudancas();
+            } catch (e) { showToast('Erro'); localStorage.removeItem('bingo_jogador_' + salaId); carregarSala(); }
+            hideLoading();
+        }
+
+        function handleFoto(e) {
+            const f = e.target.files[0]; if (!f) return;
+            const r = new FileReader();
+            r.onload = (ev) => {
+                const img = new Image();
+                img.onload = () => {
+                    const c = document.createElement('canvas'); c.width = c.height = 200;
+                    const ctx = c.getContext('2d');
+                    const min = Math.min(img.width, img.height);
+                    ctx.drawImage(img, (img.width - min) / 2, (img.height - min) / 2, min, min, 0, 0, 200, 200);
+                    fotoBase64 = c.toDataURL('image/jpeg', 0.7);
+                    document.getElementById('fotoPreview').innerHTML = '<img src="' + fotoBase64 + '">';
+                };
+                img.src = ev.target.result;
+            };
+            r.readAsDataURL(f);
+        }
+
+        const gerarId = () => Date.now().toString(36) + Math.random().toString(36).substr(2);
+        const gerarNumerosUnicos = (min, max, qtd) => { const n = []; while (n.length < qtd) { const x = Math.floor(Math.random() * (max - min + 1)) + min; if (!n.includes(x)) n.push(x); } return n; };
+
+        function gerarCartela(idx) {
+            const B = gerarNumerosUnicos(1, 15, 5), I = gerarNumerosUnicos(16, 30, 5), N = gerarNumerosUnicos(31, 45, 4), G = gerarNumerosUnicos(46, 60, 5), O = gerarNumerosUnicos(61, 75, 5);
+            const nums = [];
+            for (let l = 0; l < 5; l++) nums.push([B[l], I[l], l === 2 ? 0 : N[l < 2 ? l : l - 1], G[l], O[l]]);
+            return { id: idx + 1, numeros: nums, marcados: [0], totalMarcados: 1 };
+        }
+
+        async function entrarNoBingo() {
+            const nome = document.getElementById('inputNome').value.trim();
+            const sobrenome = document.getElementById('inputSobrenome').value.trim();
+            if (!nome || !sobrenome) { showToast('Preencha nome e sobrenome!'); return; }
+            showLoading();
+            try {
+                const carts = [];
+                for (let i = 0; i < sala.cartelasPorJogador; i++) carts.push(gerarCartela(i));
+                jogadorId = gerarId();
+                jogador = { salaId: salaId, nome: nome, sobrenome: sobrenome, foto: fotoBase64, cartelas: carts, gritouBingo: false, cartelaVencedora: null, entradaEm: Date.now() };
+                await db.ref('jogadores/' + jogadorId).set(jogador);
+                localStorage.setItem('bingo_jogador_' + salaId, jogadorId);
+                document.getElementById('telaCadastro').classList.remove('active');
+                sala.jogando ? iniciarJogo() : mostrarAguardo();
+                escutarMudancas();
+                showToast('Bem-vindo, ' + nome + '!');
+            } catch (e) { showToast('Erro: ' + e.message); }
+            hideLoading();
+        }
+
+        function mostrarAguardo() {
+            document.getElementById('telaAguardo').classList.add('active');
+            document.getElementById('telaJogo').classList.remove('active');
+            document.getElementById('aguardoCartelas').textContent = jogador.cartelas.length;
+            db.ref('jogadores').orderByChild('salaId').equalTo(salaId).on('value', (snap) => {
+                document.getElementById('aguardoJogadores').textContent = Object.keys(snap.val() || {}).length;
+            });
+        }
+
+        function iniciarJogo() {
+            document.getElementById('telaAguardo').classList.remove('active');
+            document.getElementById('telaJogo').classList.add('active');
+            document.getElementById('nomeJogador').textContent = jogador.nome + ' ' + jogador.sobrenome;
+            document.getElementById('cartelaTotalNum').textContent = jogador.cartelas.length;
+            if (jogador.cartelas.length <= 1) document.getElementById('swipeHint').style.display = 'none';
+            renderizarCartelas();
+            atualizarNavegacao();
+            atualizarBotaoBingo();
+        }
+
+        function renderizarCartelas() {
+            const cont = document.getElementById('cartelasContainer');
+            cont.innerHTML = '';
+            jogador.cartelas.forEach((cart, idx) => {
+                const div = document.createElement('div');
+                div.className = 'cartela';
+                div.id = 'cartela-' + idx;
+                let grid = '';
+                for (let r = 0; r < 5; r++) {
+                    for (let c = 0; c < 5; c++) {
+                        const n = cart.numeros[r][c];
+                        const marc = cart.marcados.includes(n);
+                        let cls = 'numero';
+                        if (n === 0) cls += ' coringa';
+                        else if (marc) cls += ' marcado';
+                        grid += '<div class="' + cls + '" id="num-' + idx + '-' + n + '" ' + (n === 0 ? '' : 'onclick="marcarNumero(' + idx + ',' + n + ')"') + '>' + (n === 0 ? 'V' : n) + '</div>';
+                    }
+                }
+                const tot = cart.marcados.filter(n => n !== 0).length;
+                let dots = '';
+                for (let i = 0; i < 24; i++) dots += '<div class="marcado-dot ' + (i < tot ? 'ativo' : '') + '"></div>';
+                div.innerHTML = '<div class="cartela-card"><div class="bingo-header"><div class="bingo-letra">B</div><div class="bingo-letra">I</div><div class="bingo-letra">N</div><div class="bingo-letra">G</div><div class="bingo-letra">O</div></div><div class="cartela-grid">' + grid + '</div><div class="marcados-counter" id="counter-' + idx + '">' + dots + '<div class="marcados-text">' + tot + '/24 marcados</div></div></div>';
+                cont.appendChild(div);
+            });
+            const dots = document.getElementById('paginationDots');
+            dots.innerHTML = '';
+            if (jogador.cartelas.length > 1) {
+                jogador.cartelas.forEach((_, idx) => {
+                    const d = document.createElement('div');
+                    d.className = 'pagination-dot ' + (idx === 0 ? 'active' : '');
+                    d.onclick = () => irParaCartela(idx);
+                    dots.appendChild(d);
+                });
+            }
+        }
+
+        async function marcarNumero(cartIdx, num) {
+            const cart = jogador.cartelas[cartIdx];
+            const idx = cart.marcados.indexOf(num);
+            if (idx > -1) cart.marcados.splice(idx, 1);
+            else cart.marcados.push(num);
+            const el = document.getElementById('num-' + cartIdx + '-' + num);
+            el.classList.toggle('marcado');
+            playSound('ploc');
+            if (navigator.vibrate) navigator.vibrate(50);
+            atualizarContador(cartIdx);
+            try {
+                await db.ref('jogadores/' + jogadorId + '/cartelas/' + cartIdx + '/marcados').set(cart.marcados);
+                if (cart.marcados.includes(num)) {
+                    await db.ref('salas/' + salaId + '/reacoes').push({ nome: jogador.nome, foto: jogador.foto, numero: num, timestamp: Date.now() });
+                }
+            } catch (e) { showToast('Erro ao salvar'); }
+            atualizarBotaoBingo();
+        }
+
+        function atualizarContador(cartIdx) {
+            const cart = jogador.cartelas[cartIdx];
+            const tot = cart.marcados.filter(n => n !== 0).length;
+            const counter = document.getElementById('counter-' + cartIdx);
+            counter.querySelectorAll('.marcado-dot').forEach((d, i) => { d.classList.toggle('ativo', i < tot); });
+            counter.querySelector('.marcados-text').textContent = tot + '/24 marcados';
+        }
+
+        function verificarSequencia(nums, marc) {
+            for (let i = 0; i < 5; i++) { if (nums[i].every(n => n === 0 || marc.includes(n))) return true; }
+            for (let c = 0; c < 5; c++) { if (nums.map(l => l[c]).every(n => n === 0 || marc.includes(n))) return true; }
+            if ([nums[0][0], nums[1][1], nums[2][2], nums[3][3], nums[4][4]].every(n => n === 0 || marc.includes(n))) return true;
+            if ([nums[0][4], nums[1][3], nums[2][2], nums[3][1], nums[4][0]].every(n => n === 0 || marc.includes(n))) return true;
+            return false;
+        }
+
+        function atualizarBotaoBingo() {
+            const btn = document.getElementById('btnBingo');
+            let pode = false;
+            for (let i = 0; i < jogador.cartelas.length; i++) {
+                if (verificarSequencia(jogador.cartelas[i].numeros, jogador.cartelas[i].marcados)) { pode = true; break; }
+            }
+            btn.classList.toggle('ativo', pode);
+        }
+
+        async function gritarBingo() {
+            const btn = document.getElementById('btnBingo');
+            if (!btn.classList.contains('ativo')) { showToast('Complete uma sequência!'); return; }
+            let cartVenc = -1;
+            for (let i = 0; i < jogador.cartelas.length; i++) {
+                if (verificarSequencia(jogador.cartelas[i].numeros, jogador.cartelas[i].marcados)) { cartVenc = i; break; }
+            }
+            if (cartVenc === -1) { showToast('Nenhuma sequência!'); return; }
+            playSound('bingo');
+            if (navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 100]);
+            try {
+                await db.ref('salas/' + salaId + '/alertasBingo').push({ jogadorId: jogadorId, jogadorNome: jogador.nome + ' ' + jogador.sobrenome, foto: jogador.foto, cartelaIndex: cartVenc, timestamp: Date.now() });
+                await db.ref('jogadores/' + jogadorId).update({ gritouBingo: true, cartelaVencedora: cartVenc });
+                document.getElementById('telaVerificacao').classList.add('active');
+            } catch (e) { showToast('Erro'); }
+        }
+
+        function escutarMudancas() {
+            db.ref('salas/' + salaId).on('value', (snap) => {
+                const s = snap.val(); if (!s) return;
+                sala = s;
+                ganhadores = s.ganhadores || [];
+                renderizarGanhadores();
+                if (s.jogando && !document.getElementById('telaJogo').classList.contains('active')) {
+                    document.getElementById('fimJogoOverlay').classList.remove('active');
+                    iniciarJogo();
+                }
+                if (s.girando) {
+                    document.getElementById('globoGirandoAviso').classList.add('active');
+                    if (!vibrando && navigator.vibrate) { vibrando = true; vibraContinuo(); }
+                } else {
+                    document.getElementById('globoGirandoAviso').classList.remove('active');
+                    vibrando = false;
+                }
+                if (s.superVencedor) {
+                    document.getElementById('telaVerificacao').classList.remove('active');
+                    document.getElementById('telaResultado').classList.remove('active');
+                    document.getElementById('fimJogoOverlay').classList.add('active');
+                    document.getElementById('fimJogoVencedor').textContent = s.superVencedor.nome + ' venceu com CARTELA CHEIA!';
+                    criarConfetes();
+                    playSound('vitoria');
+                }
+            });
+            db.ref('jogadores/' + jogadorId).on('value', (snap) => {
+                const d = snap.val(); if (!d) return;
+                const antigoBingo = jogador?.gritouBingo;
+                jogador = d;
+                renderizarCartelas();
+                atualizarNavegacao();
+                atualizarBotaoBingo();
+                if (antigoBingo && !jogador.gritouBingo) { document.getElementById('telaVerificacao').classList.remove('active'); showToast('Bingo não validado!'); }
+            });
+            db.ref('salas/' + salaId + '/ganhadores').on('value', (snap) => {
+                const g = snap.val() || [];
+                const meusNomes = jogador.nome + ' ' + jogador.sobrenome;
+                const novoGanhador = g.find(x => x.nome === meusNomes && !ganhadores.find(y => y.nome === meusNomes && y.timestamp === x.timestamp));
+                if (novoGanhador && !novoGanhador.tipo.includes('CARTELA CHEIA')) {
+                    document.getElementById('telaVerificacao').classList.remove('active');
+                    document.getElementById('resultadoIcon').textContent = '🎉';
+                    document.getElementById('resultadoTitulo').textContent = 'VOCÊ GANHOU!';
+                    document.getElementById('resultadoTitulo').className = 'resultado-titulo venceu';
+                    document.getElementById('resultadoMsg').textContent = novoGanhador.tipo + ' - Continue jogando!';
+                    document.getElementById('telaResultado').classList.add('active');
+                    criarConfetes();
+                    playSound('vitoria');
+                    db.ref('jogadores/' + jogadorId + '/gritouBingo').set(false);
+                }
+                ganhadores = g;
+            });
+            db.ref('salas/' + salaId + '/reacoes').on('child_added', (snap) => {
+                const r = snap.val();
+                if (r.nome !== jogador.nome) mostrarBalaoReacao(r);
+            });
+        }
+
+        function renderizarGanhadores() {
+            const sec = document.getElementById('ganhadoresAviso');
+            const lst = document.getElementById('ganhadoresMini');
+            if (!ganhadores.length) { sec.style.display = 'none'; return; }
+            sec.style.display = 'block';
+            lst.innerHTML = ganhadores.map(g => '<div class="ganhador-mini"><img src="' + (g.foto || getDefaultAvatar()) + '"><span>' + g.nome.split(' ')[0] + '</span></div>').join('');
+        }
+
+        function vibraContinuo() { if (!vibrando) return; if (navigator.vibrate) navigator.vibrate(200); setTimeout(vibraContinuo, 300); }
+
+        function mostrarBalaoReacao(r) {
+            const balao = document.createElement('div');
+            balao.className = 'balao-reacao';
+            balao.style.left = (10 + Math.random() * 70) + '%';
+            balao.innerHTML = '<img class="balao-foto" src="' + (r.foto || getDefaultAvatar()) + '"><span class="balao-nome">' + r.nome + ' ✅</span>';
+            document.body.appendChild(balao);
+            setTimeout(() => balao.remove(), 2500);
+        }
+
+        function voltarJogo() {
+            document.querySelectorAll('.confetti').forEach(c => c.remove());
+            document.getElementById('telaResultado').classList.remove('active');
+        }
+
+        function atualizarNavegacao() {
+            const tot = jogador.cartelas.length;
+            document.getElementById('cartelaAtualNum').textContent = cartelaAtual + 1;
+            document.getElementById('btnAnterior').disabled = cartelaAtual === 0;
+            document.getElementById('btnProxima').disabled = cartelaAtual === tot - 1;
+            document.querySelectorAll('.pagination-dot').forEach((d, idx) => { d.classList.toggle('active', idx === cartelaAtual); });
+            document.getElementById('cartelasContainer').style.transform = 'translateX(-' + cartelaAtual * 100 + '%)';
+        }
+
+        function cartelaAnterior() { if (cartelaAtual > 0) { cartelaAtual--; atualizarNavegacao(); } }
+        function proximaCartela() { if (cartelaAtual < jogador.cartelas.length - 1) { cartelaAtual++; atualizarNavegacao(); } }
+        function irParaCartela(idx) { cartelaAtual = idx; atualizarNavegacao(); }
+
+        function setupSwipe() {
+            const w = document.getElementById('cartelasWrapper');
+            w.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; }, { passive: true });
+            w.addEventListener('touchend', (e) => {
+                touchEndX = e.changedTouches[0].screenX;
+                const diff = touchStartX - touchEndX;
+                if (Math.abs(diff) > 50) { diff > 0 ? proximaCartela() : cartelaAnterior(); }
+            }, { passive: true });
+        }
+
+        function criarConfetes() {
+            const cores = ['#ef4444', '#f59e0b', '#22c55e', '#3b82f6', '#a855f7', '#ffd700', '#ec4899', '#4ecdc4'];
+            for (let i = 0; i < 80; i++) {
+                const c = document.createElement('div');
+                c.className = 'confetti';
+                c.style.left = Math.random() * 100 + '%';
+                c.style.background = cores[Math.floor(Math.random() * cores.length)];
+                c.style.animationDelay = Math.random() * 3 + 's';
+                c.style.animationDuration = (2 + Math.random() * 2) + 's';
+                document.body.appendChild(c);
+            }
+        }
+
+        function playSound(tipo) {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                if (tipo === 'ploc') {
+                    const osc = ctx.createOscillator(); const gain = ctx.createGain();
+                    osc.connect(gain); gain.connect(ctx.destination);
+                    osc.frequency.setValueAtTime(800, ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(400, ctx.currentTime + 0.1);
+                    gain.gain.setValueAtTime(0.2, ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
+                    osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.1);
+                } else if (tipo === 'bingo') {
+                    [600, 800, 1000, 1200].forEach((f, i) => {
+                        setTimeout(() => {
+                            const osc = ctx.createOscillator(); const gain = ctx.createGain();
+                            osc.connect(gain); gain.connect(ctx.destination);
+                            osc.frequency.value = f;
+                            gain.gain.setValueAtTime(0.4, ctx.currentTime);
+                            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+                            osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.3);
+                        }, i * 100);
+                    });
+                } else if (tipo === 'vitoria') {
+                    [523, 659, 784, 880, 1047].forEach((n, i) => {
+                        setTimeout(() => {
+                            const osc = ctx.createOscillator(); const gain = ctx.createGain();
+                            osc.connect(gain); gain.connect(ctx.destination);
+                            osc.frequency.value = n;
+                            gain.gain.setValueAtTime(0.4, ctx.currentTime);
+                            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
+                            osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.4);
+                        }, i * 150);
+                    });
+                }
+            } catch (e) {}
+        }
+    </script>
+</body>
+</html>

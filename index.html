@@ -1,0 +1,1079 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎰 Bingo dos Veloso - Operador</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Fredoka+One&family=Poppins:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root { --red: #ff6b6b; --cyan: #4ecdc4; --yellow: #ffe66d; --purple: #a855f7; --green: #22c55e; --blue: #3b82f6; }
+        body { font-family: 'Poppins', sans-serif; background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460); min-height: 100vh; color: #fff; overflow-x: hidden; }
+        
+        .header { display: flex; justify-content: space-between; align-items: center; padding: 20px 40px; background: linear-gradient(90deg, rgba(255,107,107,.3), rgba(78,205,196,.3), rgba(255,230,109,.3)); border-bottom: 3px solid rgba(255,255,255,.2); }
+        .logo { font-family: 'Bangers', cursive; font-size: 3rem; background: linear-gradient(135deg, #ffd700, #ff6b6b, #4ecdc4, #a855f7); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; animation: rainbow 3s ease infinite; background-size: 300% 300%; }
+        @keyframes rainbow { 0%, 100% { background-position: 0 50%; } 50% { background-position: 100% 50%; } }
+        
+        .btn { padding: 12px 24px; border: none; border-radius: 50px; font-weight: 700; cursor: pointer; transition: all .3s ease; font-size: 1rem; }
+        .btn-reset { background: linear-gradient(135deg, #ef4444, #dc2626); color: #fff; }
+        .btn-reset:hover { transform: scale(1.05); box-shadow: 0 6px 20px rgba(239,68,68,.4); }
+        
+        .container { max-width: 1600px; margin: 0 auto; padding: 30px; }
+        .card { background: linear-gradient(135deg, rgba(255,255,255,.1), rgba(255,255,255,.05)); backdrop-filter: blur(20px); border-radius: 30px; padding: 30px; border: 2px solid rgba(255,255,255,.1); box-shadow: 0 20px 60px rgba(0,0,0,.3); }
+        .card-title { font-family: 'Fredoka One', cursive; font-size: 1.8rem; margin-bottom: 25px; color: var(--yellow); display: flex; align-items: center; gap: 15px; }
+        .card-title span { font-size: 2.5rem; animation: bounce 1s ease infinite; }
+        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+        
+        .tela-inicial { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
+        .form-group { margin-bottom: 25px; }
+        .form-group label { display: block; margin-bottom: 10px; font-weight: 700; font-size: 1.1rem; }
+        .form-group input { width: 100%; padding: 18px 24px; border: 3px solid rgba(255,255,255,.2); border-radius: 15px; background: rgba(255,255,255,.1); color: #fff; font-size: 1.1rem; transition: all .3s ease; }
+        .form-group input:focus { outline: none; border-color: var(--yellow); box-shadow: 0 0 30px rgba(255,230,109,.3); }
+        
+        .premio-upload { text-align: center; padding: 30px; border: 3px dashed rgba(255,215,0,.5); border-radius: 20px; background: rgba(255,215,0,.1); cursor: pointer; transition: all .3s ease; }
+        .premio-upload:hover { border-color: var(--yellow); background: rgba(255,215,0,.2); }
+        .premio-preview { width: 150px; height: 150px; border-radius: 20px; object-fit: cover; margin: 0 auto 15px; display: block; border: 4px solid var(--yellow); }
+        .premio-icon { font-size: 4rem; margin-bottom: 15px; }
+        
+        .slider-container { display: flex; align-items: center; gap: 20px; padding: 15px; background: rgba(255,255,255,.1); border-radius: 15px; }
+        .slider-container input[type=range] { flex: 1; height: 12px; -webkit-appearance: none; background: linear-gradient(90deg, var(--red), var(--cyan)); border-radius: 6px; }
+        .slider-container input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 30px; height: 30px; background: linear-gradient(135deg, #ffd700, #ffa500); border-radius: 50%; cursor: pointer; box-shadow: 0 4px 15px rgba(255,215,0,.5); border: 3px solid #fff; }
+        .slider-value { font-family: 'Bangers', cursive; font-size: 2.5rem; color: var(--yellow); min-width: 60px; text-align: center; }
+        
+        .btn-primary { width: 100%; padding: 20px; background: linear-gradient(135deg, var(--green), #16a34a); border: none; border-radius: 20px; color: #fff; font-family: 'Fredoka One', cursive; font-size: 1.5rem; cursor: pointer; box-shadow: 0 8px 25px rgba(34,197,94,.4); transition: all .3s ease; }
+        .btn-primary:hover { transform: translateY(-3px); box-shadow: 0 12px 35px rgba(34,197,94,.6); }
+        
+        .salas-lista { display: grid; gap: 25px; max-height: 600px; overflow-y: auto; }
+        .sala-card { background: linear-gradient(135deg, rgba(255,255,255,.08), rgba(255,255,255,.03)); border-radius: 25px; padding: 25px; border: 2px solid rgba(255,255,255,.1); transition: all .3s ease; }
+        .sala-card:hover { border-color: var(--yellow); transform: translateY(-5px); }
+        .sala-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .sala-nome { font-family: 'Fredoka One', cursive; font-size: 1.5rem; color: var(--yellow); }
+        .sala-premio { width: 60px; height: 60px; border-radius: 15px; object-fit: cover; border: 3px solid var(--yellow); }
+        .sala-info { display: flex; gap: 20px; margin-bottom: 20px; flex-wrap: wrap; }
+        .sala-info-item { display: flex; align-items: center; gap: 8px; padding: 8px 15px; background: rgba(255,255,255,.1); border-radius: 10px; }
+        .qr-container { display: flex; justify-content: center; margin: 20px 0; background: #fff; padding: 20px; border-radius: 20px; width: fit-content; margin-left: auto; margin-right: auto; }
+        .sala-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .btn-sala { padding: 14px 20px; border: none; border-radius: 15px; font-weight: 700; cursor: pointer; font-size: 1rem; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all .3s ease; }
+        .btn-iniciar { background: linear-gradient(135deg, var(--green), #16a34a); color: #fff; grid-column: span 2; }
+        .btn-jogadores { background: linear-gradient(135deg, var(--blue), #2563eb); color: #fff; }
+        .btn-encerrar { background: linear-gradient(135deg, var(--red), #dc2626); color: #fff; }
+        .btn-sala:hover { transform: scale(1.03); }
+        
+        /* ALERTAS TOPO */
+        .alertas-topo { position: fixed; top: 0; left: 0; right: 0; z-index: 500; padding: 20px 30px; background: linear-gradient(135deg, rgba(255,215,0,.98), rgba(255,165,0,.98)); border-bottom: 5px solid #ffa500; display: none; animation: slideDown .5s cubic-bezier(.68,-.55,.265,1.55); box-shadow: 0 10px 40px rgba(255,165,0,.5); }
+        .alertas-topo.active { display: block; }
+        @keyframes slideDown { from { transform: translateY(-100%); } to { transform: translateY(0); } }
+        .alertas-topo h3 { font-family: 'Bangers', cursive; font-size: 2rem; color: #333; margin-bottom: 15px; text-align: center; animation: shake .5s ease infinite; }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+        .alertas-topo-lista { display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; }
+        .alerta-topo-item { display: flex; align-items: center; gap: 15px; padding: 15px 25px; background: rgba(255,255,255,.95); border-radius: 50px; box-shadow: 0 5px 20px rgba(0,0,0,.2); }
+        .alerta-topo-foto { width: 55px; height: 55px; border-radius: 50%; object-fit: cover; border: 3px solid var(--yellow); }
+        .alerta-topo-info { text-align: left; }
+        .alerta-topo-nome { font-weight: 700; color: #333; font-size: 1.2rem; }
+        .alerta-topo-cartela { font-size: .9rem; color: #666; }
+        .alerta-topo-buttons { display: flex; gap: 10px; }
+        .alerta-topo-btn { padding: 10px 20px; border: none; border-radius: 25px; font-weight: 700; cursor: pointer; font-size: 1rem; transition: all .2s ease; }
+        .alerta-topo-btn.verificar { background: var(--green); color: #fff; }
+        .alerta-topo-btn.ignorar { background: #e74c3c; color: #fff; }
+        .alerta-topo-btn:hover { transform: scale(1.1); }
+        
+        /* TELA JOGO */
+        .tela-jogo { display: none; }
+        .tela-jogo.active { display: block; }
+        .jogo-header { text-align: center; margin-bottom: 20px; padding-top: 20px; }
+        .jogo-titulo { font-family: 'Bangers', cursive; font-size: 3.5rem; background: linear-gradient(135deg, #ffd700, #ff6b6b, #4ecdc4); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .premio-destaque { display: flex; align-items: center; justify-content: center; gap: 20px; margin-top: 20px; }
+        .premio-img-grande { width: 100px; height: 100px; border-radius: 20px; object-fit: cover; border: 4px solid var(--yellow); animation: float 3s ease-in-out infinite; }
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+        .premio-texto { font-family: 'Fredoka One', cursive; font-size: 1.5rem; color: var(--yellow); }
+        
+        /* GANHADORES */
+        .ganhadores-section { margin: 20px auto; padding: 20px; background: linear-gradient(135deg, rgba(34,197,94,.2), rgba(22,163,74,.1)); border-radius: 20px; border: 2px solid var(--green); max-width: 800px; }
+        .ganhadores-title { font-family: 'Fredoka One', cursive; color: var(--green); margin-bottom: 15px; text-align: center; font-size: 1.3rem; }
+        .ganhadores-lista { display: flex; gap: 15px; flex-wrap: wrap; justify-content: center; }
+        .ganhador-badge { display: flex; align-items: center; gap: 10px; padding: 10px 20px; background: rgba(255,255,255,.1); border-radius: 50px; border: 2px solid var(--green); }
+        .ganhador-foto { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; }
+        .ganhador-info { text-align: left; }
+        .ganhador-nome { font-weight: 700; font-size: .9rem; }
+        .ganhador-tipo { font-size: .75rem; color: var(--green); }
+        
+        /* GLOBO */
+        .globo-section { display: flex; justify-content: center; align-items: center; flex-direction: column; margin: 30px 0; }
+        .globo-container { position: relative; width: 500px; height: 450px; perspective: 1200px; }
+        .globo-base { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 220px; height: 50px; background: linear-gradient(180deg, #3d4852, #1a202c); border-radius: 50%; box-shadow: 0 15px 40px rgba(0,0,0,.6); }
+        .globo-suporte { position: absolute; bottom: 35px; left: 50%; transform: translateX(-50%); width: 25px; height: 100px; background: linear-gradient(90deg, #5a6672, #8b9298, #5a6672); border-radius: 5px; }
+        .globo-cage { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); width: 300px; height: 300px; border-radius: 50%; background: transparent; box-shadow: inset 0 0 80px rgba(0,0,0,.6), 0 25px 50px rgba(0,0,0,.5); overflow: hidden; }
+        .globo-cage::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: repeating-linear-gradient(0deg, transparent, transparent 20px, rgba(100,100,100,.4) 20px, rgba(100,100,100,.4) 22px), repeating-linear-gradient(90deg, transparent, transparent 20px, rgba(100,100,100,.4) 20px, rgba(100,100,100,.4) 22px); border-radius: 50%; opacity: 0.6; }
+        .globo-cage.girando::before { animation: rotateCage 2s linear infinite; }
+        @keyframes rotateCage { to { transform: rotate(360deg); } }
+        .globo-interior { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 280px; height: 280px; border-radius: 50%; background: radial-gradient(circle at 30% 30%, #2d3748, #1a202c 50%, #0d0d1a 100%); overflow: hidden; }
+        .globo-vidro { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 300px; height: 300px; border-radius: 50%; background: radial-gradient(ellipse at 25% 25%, rgba(255,255,255,.5), rgba(255,255,255,.15) 30%, transparent 60%); pointer-events: none; z-index: 10; }
+        .bola-bingo { position: absolute; width: 42px; height: 42px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: .8rem; box-shadow: inset -4px -4px 10px rgba(0,0,0,.5), inset 4px 4px 10px rgba(255,255,255,.4), 2px 4px 8px rgba(0,0,0,.4); transition: all .1s ease-out; z-index: 5; }
+        .bola-b { background: linear-gradient(135deg, #ef4444, #b91c1c); color: #fff; }
+        .bola-i { background: linear-gradient(135deg, #f59e0b, #b45309); color: #fff; }
+        .bola-n { background: linear-gradient(135deg, #22c55e, #15803d); color: #fff; }
+        .bola-g { background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: #fff; }
+        .bola-o { background: linear-gradient(135deg, #a855f7, #7c3aed); color: #fff; }
+        .tubo-saida { position: absolute; right: 30px; top: 50%; transform: translateY(-60%); width: 140px; height: 90px; background: linear-gradient(180deg, #5a6672, #3d4852, #2d3748); border-radius: 0 50px 50px 0; box-shadow: inset 0 8px 20px rgba(255,255,255,.1), 8px 8px 25px rgba(0,0,0,.4); }
+        
+        /* BOTÕES CONTROLE */
+        .controles-section { display: flex; gap: 20px; margin-top: 30px; flex-wrap: wrap; justify-content: center; }
+        .btn-sortear { padding: 25px 70px; font-size: 1.8rem; font-family: 'Bangers', cursive; background: linear-gradient(135deg, var(--red), #dc2626); color: #fff; border: none; border-radius: 30px; cursor: pointer; box-shadow: 0 10px 40px rgba(239,68,68,.5); transition: all .3s ease; letter-spacing: 2px; }
+        .btn-sortear:hover:not(:disabled) { transform: translateY(-5px) scale(1.05); box-shadow: 0 15px 50px rgba(239,68,68,.7); }
+        .btn-sortear:disabled { background: #4a5568; cursor: not-allowed; box-shadow: none; }
+        .btn-sortear.girando { background: linear-gradient(135deg, var(--yellow), #f97316); animation: pulseBtn .5s ease infinite; }
+        @keyframes pulseBtn { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.03); } }
+        .btn-ultimo { padding: 20px 40px; font-size: 1.2rem; font-family: 'Fredoka One', cursive; background: linear-gradient(135deg, var(--purple), #7c3aed); color: #fff; border: none; border-radius: 20px; cursor: pointer; box-shadow: 0 8px 30px rgba(168,85,247,.4); transition: all .3s ease; }
+        .btn-ultimo:hover:not(:disabled) { transform: translateY(-3px); box-shadow: 0 12px 40px rgba(168,85,247,.6); }
+        .btn-ultimo:disabled { background: #4a5568; cursor: not-allowed; box-shadow: none; }
+        
+        /* REAÇÕES */
+        .reacoes-container { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); display: flex; gap: 15px; z-index: 400; flex-wrap: wrap; justify-content: center; max-width: 90%; }
+        .reacao { display: flex; align-items: center; gap: 10px; padding: 12px 20px; background: linear-gradient(135deg, rgba(34,197,94,.95), rgba(22,163,74,.95)); border-radius: 50px; animation: popReacao .5s cubic-bezier(.34,1.56,.64,1), fadeOut .5s ease 3s forwards; box-shadow: 0 5px 20px rgba(34,197,94,.5); }
+        @keyframes popReacao { 0% { transform: scale(0) translateY(50px); opacity: 0; } 100% { transform: scale(1) translateY(0); opacity: 1; } }
+        @keyframes fadeOut { to { opacity: 0; transform: translateY(-20px); } }
+        .reacao-foto { width: 45px; height: 45px; border-radius: 50%; object-fit: cover; border: 2px solid #fff; }
+        .reacao-nome { font-weight: 700; color: #fff; font-size: 1.1rem; }
+        .reacao-icon { font-size: 1.5rem; }
+        
+        /* NÚMEROS SORTEADOS */
+        .numeros-sorteados-section { margin-top: 40px; }
+        .section-title { font-family: 'Fredoka One', cursive; font-size: 2rem; margin-bottom: 25px; text-align: center; color: var(--yellow); }
+        .numeros-grid-container { background: rgba(255,255,255,.05); border-radius: 25px; padding: 30px; border: 2px solid rgba(255,255,255,.1); }
+        .letras-header { display: grid; grid-template-columns: repeat(5, 1fr); gap: 15px; margin-bottom: 15px; }
+        .letra-col { text-align: center; font-family: 'Bangers', cursive; font-size: 2.5rem; padding: 15px; border-radius: 15px; color: #fff; }
+        .letra-col.b { background: linear-gradient(135deg, #ef4444, #dc2626); }
+        .letra-col.i { background: linear-gradient(135deg, #f59e0b, #d97706); }
+        .letra-col.n { background: linear-gradient(135deg, #22c55e, #16a34a); }
+        .letra-col.g { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+        .letra-col.o { background: linear-gradient(135deg, #a855f7, #9333ea); }
+        .numeros-colunas { display: grid; grid-template-columns: repeat(5, 1fr); gap: 15px; }
+        .coluna-numeros { display: grid; gap: 8px; }
+        .numero-cell { padding: 12px; text-align: center; font-size: 1.2rem; font-weight: 700; background: rgba(255,255,255,.1); border-radius: 12px; transition: all .3s ease; }
+        .numero-cell.sorteado { color: #fff; box-shadow: 0 4px 15px rgba(255,215,0,.5); animation: pop .3s ease; }
+        .numero-cell.sorteado.b { background: linear-gradient(135deg, #ef4444, #dc2626); }
+        .numero-cell.sorteado.i { background: linear-gradient(135deg, #f59e0b, #d97706); }
+        .numero-cell.sorteado.n { background: linear-gradient(135deg, #22c55e, #16a34a); }
+        .numero-cell.sorteado.g { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+        .numero-cell.sorteado.o { background: linear-gradient(135deg, #a855f7, #9333ea); }
+        @keyframes pop { 0% { transform: scale(1); } 50% { transform: scale(1.2); } 100% { transform: scale(1); } }
+        .contador-sorteados { text-align: center; margin-top: 25px; font-family: 'Fredoka One', cursive; font-size: 1.5rem; color: var(--yellow); }
+        
+        /* OVERLAY ANIMAÇÃO - IMPORTANTE */
+        .animacao-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(ellipse at center, rgba(15,23,42,0.98), rgba(0,0,0,0.99)); z-index: 600; align-items: center; justify-content: center; flex-direction: column; overflow: hidden; }
+        .animacao-overlay.active { display: flex !important; }
+        .particulas { position: absolute; width: 100%; height: 100%; pointer-events: none; overflow: hidden; z-index: 5; }
+        
+        /* FASE LETRA */
+        .fase-letra { display: none; flex-direction: column; align-items: center; justify-content: center; position: relative; z-index: 10; }
+        .fase-letra.active { display: flex; animation: fadeInScale 0.8s cubic-bezier(0.34,1.56,0.64,1); }
+        @keyframes fadeInScale { 0% { opacity: 0; transform: scale(0.3) rotate(-20deg); } 50% { transform: scale(1.1) rotate(5deg); } 100% { opacity: 1; transform: scale(1) rotate(0); } }
+        .letra-gigante { font-family: 'Bangers', cursive; font-size: 20rem; line-height: 0.9; animation: pulseLetra 1.5s ease-in-out infinite; }
+        @keyframes pulseLetra { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.08); } }
+        .letra-gigante.b { color: #ef4444; text-shadow: 0 0 30px #ef4444, 0 0 60px #ef4444, 0 0 100px #ef4444; }
+        .letra-gigante.i { color: #f59e0b; text-shadow: 0 0 30px #f59e0b, 0 0 60px #f59e0b, 0 0 100px #f59e0b; }
+        .letra-gigante.n { color: #22c55e; text-shadow: 0 0 30px #22c55e, 0 0 60px #22c55e, 0 0 100px #22c55e; }
+        .letra-gigante.g { color: #3b82f6; text-shadow: 0 0 30px #3b82f6, 0 0 60px #3b82f6, 0 0 100px #3b82f6; }
+        .letra-gigante.o { color: #a855f7; text-shadow: 0 0 30px #a855f7, 0 0 60px #a855f7, 0 0 100px #a855f7; }
+        .texto-suspense { font-family: 'Fredoka One', cursive; font-size: 2rem; color: rgba(255,255,255,0.8); margin-top: 30px; animation: fadeInOut 1.5s ease-in-out infinite; }
+        @keyframes fadeInOut { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
+        .interrogacoes { display: flex; gap: 20px; margin-top: 20px; }
+        .interrogacao { font-size: 3rem; color: rgba(255,215,0,0.8); animation: bounceQ 0.6s ease-in-out infinite; }
+        .interrogacao:nth-child(2) { animation-delay: 0.2s; }
+        .interrogacao:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes bounceQ { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-15px); } }
+        
+        /* FASE NÚMERO */
+        .fase-numero { display: none; flex-direction: column; align-items: center; justify-content: center; position: relative; z-index: 10; }
+        .fase-numero.active { display: flex; }
+        .bola-numero-grande { width: 320px; height: 320px; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; animation: entradaNumero 0.8s cubic-bezier(0.34,1.56,0.64,1), pulseNumero 1.5s ease-in-out infinite 0.8s; box-shadow: inset -30px -30px 60px rgba(0,0,0,0.6), inset 30px 30px 60px rgba(255,255,255,0.2), 0 0 60px 20px var(--glow-color, rgba(255,255,255,0.3)); }
+        @keyframes entradaNumero { 0% { transform: scale(0) rotate(180deg); opacity: 0; } 60% { transform: scale(1.15) rotate(-10deg); } 80% { transform: scale(0.95) rotate(5deg); } 100% { transform: scale(1) rotate(0); opacity: 1; } }
+        @keyframes pulseNumero { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+        .bola-numero-grande.b { background: linear-gradient(135deg, #ef4444, #b91c1c, #991b1b); --glow-color: rgba(239,68,68,0.5); }
+        .bola-numero-grande.i { background: linear-gradient(135deg, #f59e0b, #b45309, #92400e); --glow-color: rgba(245,158,11,0.5); }
+        .bola-numero-grande.n { background: linear-gradient(135deg, #22c55e, #15803d, #166534); --glow-color: rgba(34,197,94,0.5); }
+        .bola-numero-grande.g { background: linear-gradient(135deg, #3b82f6, #1d4ed8, #1e40af); --glow-color: rgba(59,130,246,0.5); }
+        .bola-numero-grande.o { background: linear-gradient(135deg, #a855f7, #7c3aed, #6d28d9); --glow-color: rgba(168,85,247,0.5); }
+        .bola-numero-grande::before { content: ''; position: absolute; top: 15%; left: 20%; width: 35%; height: 25%; background: linear-gradient(135deg, rgba(255,255,255,0.6), rgba(255,255,255,0.2) 50%, transparent); border-radius: 50%; }
+        .bola-numero-grande .letra { font-family: 'Bangers', cursive; font-size: 4rem; color: rgba(255,255,255,0.95); text-shadow: 2px 2px 4px rgba(0,0,0,0.4); }
+        .bola-numero-grande .numero { font-family: 'Bangers', cursive; font-size: 10rem; color: #fff; text-shadow: 4px 4px 8px rgba(0,0,0,0.5); line-height: 1; }
+        .texto-numero-sorteado { font-family: 'Fredoka One', cursive; font-size: 1.8rem; color: #ffd700; margin-top: 40px; text-shadow: 0 0 20px rgba(255,215,0,0.5); animation: textPulse 1s ease-in-out infinite; }
+        @keyframes textPulse { 0%, 100% { opacity: 0.8; } 50% { opacity: 1; } }
+        
+        /* PARTÍCULAS */
+        .particula { position: absolute; border-radius: 50%; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+        @keyframes particleExplode { 0% { transform: translate(-50%, -50%) scale(1); opacity: 1; } 100% { transform: translate(calc(-50% + var(--tx)), calc(-50% + var(--ty))) scale(0); opacity: 0; } }
+        .estrela { position: absolute; font-size: 2rem; animation: starSpin 2s linear forwards; opacity: 1; }
+        @keyframes starSpin { 0% { transform: rotate(0deg) scale(1); opacity: 1; } 100% { transform: rotate(360deg) scale(0); opacity: 0; } }
+        .onda { position: absolute; border: 3px solid; border-radius: 50%; top: 50%; left: 50%; transform: translate(-50%, -50%); animation: ondaExpand 1.5s ease-out forwards; }
+        @keyframes ondaExpand { 0% { width: 0; height: 0; opacity: 1; } 100% { width: 600px; height: 600px; opacity: 0; } }
+        
+        /* MODAIS */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,.9); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(10px); }
+        .modal.active { display: flex; }
+        .modal-content { background: linear-gradient(135deg, #1a1a2e, #16213e); border-radius: 30px; padding: 40px; max-width: 900px; width: 90%; max-height: 80vh; overflow-y: auto; border: 3px solid rgba(255,255,255,.2); position: relative; }
+        .modal-close { position: absolute; top: 20px; right: 20px; width: 50px; height: 50px; border-radius: 50%; background: rgba(255,255,255,.1); border: none; color: #fff; font-size: 2rem; cursor: pointer; transition: all .3s ease; }
+        .modal-close:hover { background: var(--red); transform: rotate(90deg); }
+        .regras-title { font-family: 'Bangers', cursive; font-size: 3rem; color: var(--yellow); margin-bottom: 30px; text-align: center; }
+        .regras-lista { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 30px; }
+        .regra-item { background: rgba(255,255,255,.1); border-radius: 20px; padding: 25px 15px; text-align: center; border: 2px solid rgba(255,255,255,.2); }
+        .regra-icon { font-size: 3rem; margin-bottom: 15px; }
+        .regra-titulo { font-family: 'Fredoka One', cursive; font-size: 1.1rem; color: var(--yellow); margin-bottom: 10px; }
+        .regra-desc { font-size: .9rem; color: rgba(255,255,255,.8); }
+        .btn-iniciar-jogo { padding: 25px 60px; font-size: 1.8rem; font-family: 'Bangers', cursive; background: linear-gradient(135deg, var(--green), #16a34a); color: #fff; border: none; border-radius: 20px; cursor: pointer; letter-spacing: 3px; box-shadow: 0 10px 40px rgba(34,197,94,.5); display: block; margin: 0 auto; transition: all .3s ease; }
+        .btn-iniciar-jogo:hover { transform: scale(1.05); }
+        
+        /* VERIFICAÇÃO */
+        .verificacao-cartela { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin: 25px 0; }
+        .verificacao-header { text-align: center; font-family: 'Bangers', cursive; font-size: 1.8rem; padding: 15px; border-radius: 15px; color: #fff; }
+        .verificacao-header:nth-child(1) { background: linear-gradient(135deg, #ef4444, #dc2626); }
+        .verificacao-header:nth-child(2) { background: linear-gradient(135deg, #f59e0b, #d97706); }
+        .verificacao-header:nth-child(3) { background: linear-gradient(135deg, #22c55e, #16a34a); }
+        .verificacao-header:nth-child(4) { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+        .verificacao-header:nth-child(5) { background: linear-gradient(135deg, #a855f7, #9333ea); }
+        .verificacao-cell { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; font-weight: 700; border-radius: 15px; background: rgba(255,255,255,.1); }
+        .verificacao-cell.marcado-correto { background: linear-gradient(135deg, var(--green), #16a34a); color: #fff; }
+        .verificacao-cell.nao-marcou { background: linear-gradient(135deg, var(--red), #dc2626); color: #fff; }
+        .verificacao-cell.coringa { background: linear-gradient(135deg, #ffd700, #ffa500); color: #333; }
+        .verificacao-cell.sequencia { box-shadow: 0 0 0 4px var(--yellow), 0 0 20px rgba(255,215,0,.5); }
+        .resultado-verificacao { text-align: center; padding: 30px; border-radius: 20px; margin: 25px 0; }
+        .resultado-verificacao.valido { background: linear-gradient(135deg, rgba(34,197,94,.3), rgba(22,163,74,.2)); border: 3px solid var(--green); }
+        .resultado-verificacao.invalido { background: linear-gradient(135deg, rgba(239,68,68,.3), rgba(220,38,38,.2)); border: 3px solid var(--red); }
+        .resultado-titulo { font-family: 'Bangers', cursive; font-size: 2.5rem; margin-bottom: 15px; }
+        .numeros-perdidos-lista { display: flex; gap: 15px; justify-content: center; flex-wrap: wrap; margin-top: 20px; }
+        .numero-perdido { padding: 15px 25px; background: rgba(239,68,68,.3); border-radius: 15px; font-weight: 700; font-size: 1.2rem; border: 2px solid var(--red); }
+        .modal-buttons { display: flex; gap: 20px; margin-top: 25px; }
+        .modal-buttons button { flex: 1; padding: 20px; border: none; border-radius: 15px; font-family: 'Fredoka One', cursive; font-size: 1.3rem; cursor: pointer; }
+        .btn-vencedor { background: linear-gradient(135deg, #ffd700, #ffa500); color: #333; }
+        .btn-continuar { background: rgba(255,255,255,.2); color: #fff; }
+        
+        /* JOGADORES */
+        .jogador-item { display: flex; align-items: center; justify-content: space-between; padding: 20px; background: rgba(255,255,255,.05); border-radius: 20px; margin-bottom: 15px; }
+        .jogador-info { display: flex; align-items: center; gap: 20px; }
+        .jogador-foto { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; border: 3px solid var(--cyan); }
+        .jogador-nome { font-weight: 700; font-size: 1.2rem; }
+        .jogador-cartelas-info { color: rgba(255,255,255,.6); }
+        .jogador-cartelas-edit { display: flex; align-items: center; gap: 15px; }
+        .cartelas-input { width: 80px; padding: 10px; border: 2px solid rgba(255,255,255,.3); border-radius: 10px; background: rgba(255,255,255,.1); color: #fff; font-size: 1.2rem; font-weight: 700; text-align: center; }
+        .btn-salvar-cartelas { padding: 10px 20px; background: linear-gradient(135deg, var(--green), #16a34a); border: none; border-radius: 10px; color: #fff; font-weight: 600; cursor: pointer; }
+        
+        /* TELA VITÓRIA */
+        .tela-vitoria { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, #1a1a2e, #16213e); z-index: 3000; align-items: center; justify-content: center; flex-direction: column; }
+        .tela-vitoria.active { display: flex; }
+        .confetti { position: fixed; width: 15px; height: 15px; top: -20px; animation: fall 3s linear infinite; z-index: 3001; }
+        @keyframes fall { to { transform: translateY(100vh) rotate(720deg); } }
+        .vencedor-container { text-align: center; z-index: 3002; }
+        .vencedor-trofeu { font-size: 8rem; animation: trofeubounce 1s ease infinite; }
+        @keyframes trofeubounce { 0%, 100% { transform: translateY(0) rotate(-5deg); } 50% { transform: translateY(-30px) rotate(5deg); } }
+        .vencedor-titulo { font-family: 'Bangers', cursive; font-size: 5rem; color: var(--yellow); margin: 20px 0; }
+        .vencedor-foto { width: 220px; height: 220px; border-radius: 50%; object-fit: cover; border: 8px solid var(--yellow); box-shadow: 0 0 80px rgba(255,215,0,.6); margin: 30px 0; }
+        .vencedor-nome { font-family: 'Fredoka One', cursive; font-size: 3.5rem; color: #fff; margin-bottom: 20px; }
+        .premio-vencedor { display: flex; align-items: center; justify-content: center; gap: 20px; margin: 30px 0; padding: 20px 40px; background: rgba(255,215,0,.2); border-radius: 20px; border: 3px solid var(--yellow); }
+        .premio-vencedor img { width: 80px; height: 80px; border-radius: 15px; object-fit: cover; }
+        .premio-vencedor span { font-family: 'Fredoka One', cursive; font-size: 1.5rem; color: var(--yellow); }
+        .btn-novo-jogo { padding: 25px 80px; font-size: 2rem; font-family: 'Bangers', cursive; background: linear-gradient(135deg, var(--green), #16a34a); color: #fff; border: none; border-radius: 25px; cursor: pointer; margin-top: 30px; box-shadow: 0 10px 40px rgba(34,197,94,.5); }
+        .btn-novo-jogo:hover { transform: scale(1.05); }
+        
+        /* TOAST */
+        .toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(100px); padding: 20px 40px; background: linear-gradient(135deg, rgba(0,0,0,.95), rgba(30,30,30,.95)); color: #fff; border-radius: 20px; font-weight: 600; font-size: 1.1rem; z-index: 5000; transition: transform .4s cubic-bezier(.34,1.56,.64,1); border: 2px solid rgba(255,255,255,.2); }
+        .toast.active { transform: translateX(-50%) translateY(0); }
+        
+        /* LOADING */
+        .loading { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,.9); z-index: 6000; align-items: center; justify-content: center; flex-direction: column; gap: 20px; }
+        .loading.active { display: flex; }
+        .spinner { width: 80px; height: 80px; border: 6px solid rgba(255,255,255,.2); border-top-color: var(--yellow); border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .loading-text { font-family: 'Fredoka One', cursive; font-size: 1.5rem; color: var(--yellow); }
+        
+        /* EMPTY */
+        .empty-state { text-align: center; padding: 60px; color: rgba(255,255,255,.5); }
+        .empty-state-icon { font-size: 5rem; margin-bottom: 20px; animation: float 3s ease-in-out infinite; }
+        .btn-voltar { padding: 15px 30px; background: rgba(255,255,255,.1); border: 2px solid rgba(255,255,255,.3); border-radius: 15px; color: #fff; font-weight: 600; cursor: pointer; margin-top: 15px; }
+        .btn-voltar:hover { background: rgba(255,255,255,.2); }
+        
+        /* RESPONSIVO */
+        @media (max-width: 1200px) { .tela-inicial { grid-template-columns: 1fr; } .globo-container { width: 400px; height: 380px; } .globo-cage, .globo-vidro { width: 260px; height: 260px; } .globo-interior { width: 240px; height: 240px; } }
+        @media (max-width: 768px) { .header { padding: 15px 20px; flex-direction: column; gap: 15px; } .logo { font-size: 2rem; } .container { padding: 15px; } .jogo-titulo { font-size: 2rem; } .globo-container { width: 320px; height: 300px; } .globo-cage, .globo-vidro { width: 220px; height: 220px; } .globo-interior { width: 200px; height: 200px; } .regras-lista { grid-template-columns: 1fr 1fr; } .btn-sortear { padding: 18px 40px; font-size: 1.3rem; } .controles-section { flex-direction: column; align-items: center; } .letra-gigante { font-size: 12rem; } .bola-numero-grande { width: 250px; height: 250px; } .bola-numero-grande .numero { font-size: 7rem; } .bola-numero-grande .letra { font-size: 3rem; } }
+    </style>
+</head>
+<body>
+    <!-- ALERTAS TOPO -->
+    <div class="alertas-topo" id="alertasTopo">
+        <h3>🚨 BINGO GRITADO!</h3>
+        <div class="alertas-topo-lista" id="alertasTopoLista"></div>
+    </div>
+
+    <!-- HEADER -->
+    <header class="header">
+        <div class="logo">🎰 Bingo dos Veloso</div>
+        <button class="btn btn-reset" onclick="resetarTudo()">🔄 RESETAR</button>
+    </header>
+
+    <!-- TELA INICIAL -->
+    <main class="container">
+        <div class="tela-inicial" id="telaInicial">
+            <div class="card">
+                <h2 class="card-title"><span>🎯</span> Criar Nova Sala</h2>
+                <div class="form-group">
+                    <label>Nome da Sala</label>
+                    <input type="text" id="nomeSala" placeholder="Ex: Bingo de Natal">
+                </div>
+                <div class="form-group">
+                    <label>Foto do Prêmio (opcional)</label>
+                    <div class="premio-upload" onclick="document.getElementById('premioInput').click()">
+                        <div id="premioPreview"><div class="premio-icon">🎁</div><p>Clique para adicionar</p></div>
+                    </div>
+                    <input type="file" id="premioInput" accept="image/*" style="display:none" onchange="handlePremio(event)">
+                </div>
+                <div class="form-group">
+                    <label>Cartelas por Jogador</label>
+                    <div class="slider-container">
+                        <input type="range" id="qtdCartelas" min="1" max="6" value="3" oninput="document.getElementById('qtdCartelasVal').textContent=this.value">
+                        <span class="slider-value" id="qtdCartelasVal">3</span>
+                    </div>
+                </div>
+                <button class="btn-primary" onclick="criarSala()">✨ CRIAR SALA</button>
+            </div>
+            <div class="card">
+                <h2 class="card-title"><span>🎮</span> Salas Ativas</h2>
+                <div class="salas-lista" id="salasLista"><div class="empty-state"><div class="empty-state-icon">🎱</div><p>Nenhuma sala ativa</p></div></div>
+            </div>
+        </div>
+
+        <!-- TELA DO JOGO -->
+        <div class="tela-jogo" id="telaJogo">
+            <div class="jogo-header">
+                <h1 class="jogo-titulo" id="jogoTitulo">🎰 Bingo 🎰</h1>
+                <div class="premio-destaque" id="premioDestaque" style="display:none">
+                    <img class="premio-img-grande" id="premioImgJogo" src="">
+                    <span class="premio-texto">🏆 PRÊMIO</span>
+                </div>
+                <button class="btn-voltar" onclick="voltarInicio()">⬅️ Voltar</button>
+            </div>
+
+            <div class="ganhadores-section" id="ganhadoresSection" style="display:none">
+                <h3 class="ganhadores-title">🏆 GANHADORES</h3>
+                <div class="ganhadores-lista" id="ganhadoresLista"></div>
+            </div>
+
+            <div class="globo-section">
+                <div class="globo-container">
+                    <div class="globo-base"></div>
+                    <div class="globo-suporte"></div>
+                    <div class="globo-cage" id="globoCage">
+                        <div class="globo-interior" id="globoInterior"></div>
+                        <div class="globo-vidro"></div>
+                    </div>
+                    <div class="tubo-saida"></div>
+                </div>
+                <div class="controles-section">
+                    <button class="btn-sortear" id="btnSortear" onclick="iniciarSorteio()">🎲 GIRAR GLOBO</button>
+                    <button class="btn-ultimo" id="btnUltimo" onclick="mostrarUltimoNumero()" disabled>🔄 VER ÚLTIMO</button>
+                </div>
+            </div>
+
+            <div class="reacoes-container" id="reacoesContainer"></div>
+
+            <div class="numeros-sorteados-section">
+                <h2 class="section-title">📋 Números Sorteados (<span id="contadorSorteados">0</span>/75)</h2>
+                <div class="numeros-grid-container" id="gradeNumeros"></div>
+            </div>
+        </div>
+    </main>
+
+    <!-- OVERLAY ANIMAÇÃO -->
+    <div class="animacao-overlay" id="animacaoOverlay">
+        <div class="particulas" id="particulas"></div>
+        <div class="fase-letra" id="faseLetra">
+            <div class="letra-gigante" id="letraGigante">B</div>
+            <div class="texto-suspense">Qual será o número...?</div>
+            <div class="interrogacoes" id="interrogacoes"></div>
+        </div>
+        <div class="fase-numero" id="faseNumero">
+            <div class="bola-numero-grande" id="bolaNumeroGrande">
+                <span class="letra" id="bolaLetra">B</span>
+                <span class="numero" id="bolaNumero">12</span>
+            </div>
+            <div class="texto-numero-sorteado">🎱 NÚMERO SORTEADO!</div>
+        </div>
+    </div>
+
+    <!-- MODAL REGRAS -->
+    <div class="modal" id="regrasModal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="fecharModal('regrasModal')">×</button>
+            <h2 class="regras-title">📜 REGRAS DO JOGO</h2>
+            <div class="regras-lista">
+                <div class="regra-item"><div class="regra-icon">🎱</div><div class="regra-titulo">LINHA</div><div class="regra-desc">5 números em linha horizontal</div></div>
+                <div class="regra-item"><div class="regra-icon">📊</div><div class="regra-titulo">COLUNA</div><div class="regra-desc">5 números em linha vertical</div></div>
+                <div class="regra-item"><div class="regra-icon">↗️</div><div class="regra-titulo">DIAGONAL</div><div class="regra-desc">5 números na diagonal</div></div>
+                <div class="regra-item"><div class="regra-icon">✖️</div><div class="regra-titulo">CRUZADA</div><div class="regra-desc">As duas diagonais completas</div></div>
+                <div class="regra-item"><div class="regra-icon">🏆</div><div class="regra-titulo">CARTELA CHEIA</div><div class="regra-desc">Todos 24 números = FIM DO JOGO!</div></div>
+                <div class="regra-item"><div class="regra-icon">⭐</div><div class="regra-titulo">CORINGA</div><div class="regra-desc">Centro já marcado!</div></div>
+            </div>
+            <button class="btn-iniciar-jogo" onclick="confirmarInicioJogo()">🎮 COMEÇAR!</button>
+        </div>
+    </div>
+
+    <!-- MODAL JOGADORES -->
+    <div class="modal" id="modalJogadores">
+        <div class="modal-content">
+            <button class="modal-close" onclick="fecharModal('modalJogadores')">×</button>
+            <h2 class="regras-title">👥 JOGADORES</h2>
+            <p id="totalJogadores" style="text-align:center;margin-bottom:20px"></p>
+            <div id="jogadoresLista"></div>
+        </div>
+    </div>
+
+    <!-- MODAL VERIFICAÇÃO -->
+    <div class="modal" id="modalVerificacao">
+        <div class="modal-content">
+            <button class="modal-close" onclick="fecharModal('modalVerificacao')">×</button>
+            <h2 class="regras-title">🔍 VERIFICAR BINGO</h2>
+            <p id="verificacaoNome" style="text-align:center;font-size:1.3rem;margin-bottom:20px"></p>
+            <div class="verificacao-cartela" id="verificacaoCartela"></div>
+            <div id="resultadoVerificacao"></div>
+            <div class="modal-buttons" id="verificacaoButtons"></div>
+        </div>
+    </div>
+
+    <!-- TELA VITÓRIA -->
+    <div class="tela-vitoria" id="telaVitoria">
+        <div class="vencedor-container">
+            <div class="vencedor-trofeu">🏆</div>
+            <h1 class="vencedor-titulo">TEMOS UM CAMPEÃO!</h1>
+            <img class="vencedor-foto" id="vencedorFoto" src="">
+            <h2 class="vencedor-nome" id="vencedorNome"></h2>
+            <div class="premio-vencedor" id="premioVencedor"><img id="premioVencedorImg" src=""><span>GANHOU O PRÊMIO!</span></div>
+            <button class="btn-novo-jogo" onclick="novoJogo()">🎰 NOVO JOGO</button>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+    <div class="loading" id="loading"><div class="spinner"></div><div class="loading-text">Carregando...</div></div>
+
+    <script>
+        // Firebase Config
+        const firebaseConfig = {
+            apiKey: "AIzaSyCPYcph6zvKD-pIrDSwlL378hJKQoz-r2I",
+            authDomain: "bingo-16f47.firebaseapp.com",
+            databaseURL: "https://bingo-16f47-default-rtdb.firebaseio.com",
+            projectId: "bingo-16f47",
+            storageBucket: "bingo-16f47.firebasestorage.app",
+            messagingSenderId: "549011622250",
+            appId: "1:549011622250:web:d86e8112d2d108f239fd13"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        let salaAtual = null, salaAtualData = null, numerosSorteados = [], premioBase64 = null;
+        let animacaoGiroInterval = null, ganhadores = [], ultimoNumero = null, ultimaLetra = null;
+        let audioCtx = null;
+
+        const TEMPO_MOSTRAR_LETRA = 3500;
+        const TEMPO_MOSTRAR_NUMERO = 5000;
+
+        document.addEventListener('DOMContentLoaded', () => { carregarSalas(); criarBolasGlobo(); });
+
+        const showToast = (msg) => { const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('active'); setTimeout(() => t.classList.remove('active'), 3000); };
+        const showLoading = () => document.getElementById('loading').classList.add('active');
+        const hideLoading = () => document.getElementById('loading').classList.remove('active');
+        const fecharModal = (id) => document.getElementById(id).classList.remove('active');
+        const gerarId = () => Date.now().toString(36) + Math.random().toString(36).substr(2);
+        const getLetra = (n) => n <= 15 ? 'B' : n <= 30 ? 'I' : n <= 45 ? 'N' : n <= 60 ? 'G' : 'O';
+        const getDefaultAvatar = () => "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%234ecdc4' width='100' height='100'/><text x='50' y='60' text-anchor='middle' font-size='40'>👤</text></svg>";
+
+        function initAudio() { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); return audioCtx; }
+
+        function handlePremio(e) {
+            const f = e.target.files[0]; if (!f) return;
+            const r = new FileReader();
+            r.onload = (ev) => {
+                const img = new Image();
+                img.onload = () => {
+                    const c = document.createElement('canvas'); c.width = c.height = 300;
+                    const ctx = c.getContext('2d');
+                    const min = Math.min(img.width, img.height);
+                    ctx.drawImage(img, (img.width - min) / 2, (img.height - min) / 2, min, min, 0, 0, 300, 300);
+                    premioBase64 = c.toDataURL('image/jpeg', 0.8);
+                    document.getElementById('premioPreview').innerHTML = '<img class="premio-preview" src="' + premioBase64 + '"><p style="color:var(--yellow)">✅ Adicionado!</p>';
+                };
+                img.src = ev.target.result;
+            };
+            r.readAsDataURL(f);
+        }
+
+        async function criarSala() {
+            const n = document.getElementById('nomeSala').value.trim();
+            const c = parseInt(document.getElementById('qtdCartelas').value);
+            if (!n) { showToast('📝 Digite o nome!'); return; }
+            showLoading();
+            const id = gerarId();
+            try {
+                await db.ref('salas/' + id).set({ nome: n, cartelasPorJogador: c, premio: premioBase64, ativa: true, jogando: false, girando: false, numeroAtual: null, letraAtual: null, faseAnimacao: 'idle', numerosSorteados: [], ganhadores: [], superVencedor: null, criadaEm: Date.now() });
+                document.getElementById('nomeSala').value = '';
+                document.getElementById('premioPreview').innerHTML = '<div class="premio-icon">🎁</div><p>Clique para adicionar</p>';
+                premioBase64 = null;
+                showToast('✅ Sala criada!');
+            } catch (e) { showToast('❌ Erro: ' + e.message); }
+            hideLoading();
+        }
+
+        function carregarSalas() { db.ref('salas').on('value', (s) => renderizarSalas(s.val() || {})); }
+
+        function renderizarSalas(salas) {
+            const l = document.getElementById('salasLista');
+            const atv = Object.entries(salas).filter(([_, s]) => s.ativa);
+            if (!atv.length) { l.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🎱</div><p>Nenhuma sala ativa</p></div>'; return; }
+            l.innerHTML = atv.map(([id, s]) => '<div class="sala-card"><div class="sala-header"><div class="sala-nome">🎰 ' + s.nome + '</div>' + (s.premio ? '<img class="sala-premio" src="' + s.premio + '">' : '') + '</div><div class="sala-info"><div class="sala-info-item"><span>📋</span><span>' + s.cartelasPorJogador + ' cartela(s)</span></div><div class="sala-info-item" id="jog-' + id + '"><span>👥</span><span>...</span></div></div><div class="qr-container" id="qr-' + id + '"></div><div class="sala-buttons">' + (s.jogando ? '<button class="btn-sala btn-iniciar" onclick="entrarJogo(\'' + id + '\')">▶️ CONTINUAR</button>' : '<button class="btn-sala btn-iniciar" onclick="mostrarRegras(\'' + id + '\')">🎮 INICIAR</button>') + '<button class="btn-sala btn-jogadores" onclick="verJogadores(\'' + id + '\')">👥 JOGADORES</button><button class="btn-sala btn-encerrar" onclick="encerrarSala(\'' + id + '\')">🗑️ ENCERRAR</button></div></div>').join('');
+            atv.forEach(([id]) => {
+                const url = location.origin + location.pathname.replace('index.html', '') + 'jogador.html?sala=' + id;
+                const qr = document.getElementById('qr-' + id);
+                if (qr) { qr.innerHTML = ''; new QRCode(qr, { text: url, width: 180, height: 180 }); }
+                db.ref('jogadores').orderByChild('salaId').equalTo(id).on('value', (snap) => {
+                    const el = document.getElementById('jog-' + id);
+                    if (el) el.innerHTML = '<span>👥</span><span>' + Object.keys(snap.val() || {}).length + '</span>';
+                });
+            });
+        }
+
+        async function verJogadores(salaId) {
+            const snap = await db.ref('jogadores').orderByChild('salaId').equalTo(salaId).once('value');
+            const jogs = snap.val() || {};
+            const salaSnap = await db.ref('salas/' + salaId).once('value');
+            const sala = salaSnap.val();
+            const l = document.getElementById('jogadoresLista');
+            const arr = Object.entries(jogs);
+            if (!arr.length) { l.innerHTML = '<div class="empty-state"><p>Nenhum jogador</p></div>'; }
+            else { l.innerHTML = arr.map(([id, j]) => '<div class="jogador-item"><div class="jogador-info"><img class="jogador-foto" src="' + (j.foto || getDefaultAvatar()) + '"><div><div class="jogador-nome">' + j.nome + ' ' + j.sobrenome + '</div><div class="jogador-cartelas-info">' + (j.cartelas?.length || sala.cartelasPorJogador) + ' cartela(s)</div></div></div><div class="jogador-cartelas-edit"><input type="number" class="cartelas-input" id="cart-' + id + '" value="' + (j.cartelas?.length || sala.cartelasPorJogador) + '" min="1" max="10"><button class="btn-salvar-cartelas" onclick="atualizarCartelas(\'' + id + '\',\'' + salaId + '\')">💾</button></div></div>').join(''); }
+            let tot = 0; arr.forEach(([_, j]) => tot += j.cartelas?.length || sala.cartelasPorJogador);
+            document.getElementById('totalJogadores').textContent = '📊 ' + arr.length + ' jogadores, ' + tot + ' cartelas';
+            document.getElementById('modalJogadores').classList.add('active');
+        }
+
+        async function atualizarCartelas(jId, sId) {
+            const q = parseInt(document.getElementById('cart-' + jId).value);
+            if (q < 1 || q > 10) { showToast('❌ 1-10 cartelas'); return; }
+            showLoading();
+            try {
+                const snap = await db.ref('jogadores/' + jId).once('value');
+                const j = snap.val();
+                let carts = [...(j.cartelas || [])];
+                if (q > carts.length) { for (let i = carts.length; i < q; i++) carts.push(gerarCartela(i)); }
+                else { carts = carts.slice(0, q); }
+                await db.ref('jogadores/' + jId + '/cartelas').set(carts);
+                showToast('✅ Atualizado!');
+                verJogadores(sId);
+            } catch (e) { showToast('❌ ' + e.message); }
+            hideLoading();
+        }
+
+        function gerarCartela(idx) {
+            const gen = (mi, ma, qt) => { const n = []; while (n.length < qt) { const x = Math.floor(Math.random() * (ma - mi + 1)) + mi; if (!n.includes(x)) n.push(x); } return n; };
+            const B = gen(1, 15, 5), I = gen(16, 30, 5), N = gen(31, 45, 4), G = gen(46, 60, 5), O = gen(61, 75, 5);
+            const nums = [];
+            for (let l = 0; l < 5; l++) nums.push([B[l], I[l], l === 2 ? 0 : N[l < 2 ? l : l - 1], G[l], O[l]]);
+            return { id: idx + 1, numeros: nums, marcados: [0], totalMarcados: 1 };
+        }
+
+        let salaParaIniciar = null;
+        function mostrarRegras(id) { salaParaIniciar = id; document.getElementById('regrasModal').classList.add('active'); }
+        async function confirmarInicioJogo() { document.getElementById('regrasModal').classList.remove('active'); if (salaParaIniciar) await iniciarJogo(salaParaIniciar); }
+
+        async function iniciarJogo(sId) {
+            showLoading();
+            try {
+                await db.ref('salas/' + sId).update({ jogando: true, girando: false, numeroAtual: null, letraAtual: null, faseAnimacao: 'idle', numerosSorteados: [], ganhadores: [], superVencedor: null, alertasBingo: null });
+                entrarJogo(sId);
+            } catch (e) { showToast('❌ ' + e.message); }
+            hideLoading();
+        }
+
+        function entrarJogo(sId) {
+            salaAtual = sId;
+            document.getElementById('telaInicial').style.display = 'none';
+            document.getElementById('telaJogo').classList.add('active');
+            db.ref('salas/' + sId).on('value', (snap) => {
+                const s = snap.val(); if (!s) return;
+                salaAtualData = s;
+                document.getElementById('jogoTitulo').textContent = '🎰 ' + s.nome + ' 🎰';
+                numerosSorteados = s.numerosSorteados || [];
+                ganhadores = s.ganhadores || [];
+                if (s.premio) { document.getElementById('premioDestaque').style.display = 'flex'; document.getElementById('premioImgJogo').src = s.premio; }
+                else { document.getElementById('premioDestaque').style.display = 'none'; }
+                renderizarGrade();
+                renderizarGanhadores();
+                document.getElementById('contadorSorteados').textContent = numerosSorteados.length;
+                atualizarEstadoSorteio(s);
+                atualizarBotaoUltimo();
+                if (s.superVencedor) mostrarSuperVencedor(s.superVencedor, s.premio);
+            });
+            db.ref('salas/' + sId + '/reacoes').on('child_added', (snap) => { mostrarReacao(snap.val()); setTimeout(() => db.ref('salas/' + sId + '/reacoes/' + snap.key).remove(), 4000); });
+            db.ref('salas/' + sId + '/alertasBingo').on('value', (snap) => { renderizarAlertasTopo(Object.entries(snap.val() || {})); });
+        }
+
+        function renderizarGanhadores() {
+            const sec = document.getElementById('ganhadoresSection');
+            const lst = document.getElementById('ganhadoresLista');
+            if (!ganhadores.length) { sec.style.display = 'none'; return; }
+            sec.style.display = 'block';
+            lst.innerHTML = ganhadores.map(g => '<div class="ganhador-badge"><img class="ganhador-foto" src="' + (g.foto || getDefaultAvatar()) + '"><div class="ganhador-info"><div class="ganhador-nome">' + g.nome + '</div><div class="ganhador-tipo">' + g.tipo + '</div></div></div>').join('');
+        }
+
+        function atualizarEstadoSorteio(s) {
+            const btn = document.getElementById('btnSortear');
+            const cage = document.getElementById('globoCage');
+            
+            console.log('Estado:', s.faseAnimacao, 'Girando:', s.girando);
+            
+            if (s.girando) {
+                btn.textContent = '✋ PARAR!';
+                btn.classList.add('girando');
+                btn.disabled = false;
+                cage.classList.add('girando');
+                animarBolasGlobo();
+                esconderAnimacao();
+            } else if (s.faseAnimacao === 'letra' && s.letraAtual) {
+                btn.disabled = true;
+                btn.textContent = '⏳ AGUARDE...';
+                btn.classList.remove('girando');
+                cage.classList.remove('girando');
+                pararAnimacaoBolas();
+                mostrarLetra(s.letraAtual);
+            } else if (s.faseAnimacao === 'numero' && s.numeroAtual) {
+                btn.disabled = true;
+                btn.textContent = '⏳ AGUARDE...';
+                mostrarNumero(s.numeroAtual, s.letraAtual);
+            } else {
+                btn.textContent = '🎲 GIRAR GLOBO';
+                btn.classList.remove('girando');
+                btn.disabled = false;
+                cage.classList.remove('girando');
+                pararAnimacaoBolas();
+                esconderAnimacao();
+            }
+        }
+
+        function atualizarBotaoUltimo() {
+            const btn = document.getElementById('btnUltimo');
+            btn.disabled = !numerosSorteados.length;
+            if (numerosSorteados.length) {
+                ultimoNumero = numerosSorteados[numerosSorteados.length - 1];
+                ultimaLetra = getLetra(ultimoNumero);
+            }
+        }
+
+        // === ANIMAÇÕES ===
+        function mostrarLetra(letra) {
+            console.log('Mostrando letra:', letra);
+            const overlay = document.getElementById('animacaoOverlay');
+            const faseLetra = document.getElementById('faseLetra');
+            const faseNumero = document.getElementById('faseNumero');
+            const letraEl = document.getElementById('letraGigante');
+            const particulas = document.getElementById('particulas');
+            const interrogacoes = document.getElementById('interrogacoes');
+
+            particulas.innerHTML = '';
+            faseNumero.classList.remove('active');
+            
+            letraEl.textContent = letra;
+            letraEl.className = 'letra-gigante ' + letra.toLowerCase();
+            
+            interrogacoes.innerHTML = '<span class="interrogacao">?</span><span class="interrogacao">?</span><span class="interrogacao">?</span>';
+
+            overlay.classList.add('active');
+            faseLetra.classList.add('active');
+            
+            tocarSomSuspense();
+        }
+
+        function mostrarNumero(numero, letra) {
+            console.log('Mostrando número:', letra, numero);
+            const overlay = document.getElementById('animacaoOverlay');
+            const faseLetra = document.getElementById('faseLetra');
+            const faseNumero = document.getElementById('faseNumero');
+            const bola = document.getElementById('bolaNumeroGrande');
+            const letraEl = document.getElementById('bolaLetra');
+            const numEl = document.getElementById('bolaNumero');
+            const particulas = document.getElementById('particulas');
+
+            faseLetra.classList.remove('active');
+            
+            bola.className = 'bola-numero-grande ' + letra.toLowerCase();
+            letraEl.textContent = letra;
+            numEl.textContent = numero;
+
+            overlay.classList.add('active');
+            faseNumero.classList.add('active');
+
+            criarExplosaoParticulas(letra);
+            criarOndasExpansao(letra);
+            tocarSomNumero();
+        }
+
+        function esconderAnimacao() {
+            const overlay = document.getElementById('animacaoOverlay');
+            const faseLetra = document.getElementById('faseLetra');
+            const faseNumero = document.getElementById('faseNumero');
+            
+            overlay.classList.remove('active');
+            faseLetra.classList.remove('active');
+            faseNumero.classList.remove('active');
+        }
+
+        function criarExplosaoParticulas(letra) {
+            const container = document.getElementById('particulas');
+            container.innerHTML = '';
+            const cores = { B: '#ef4444', I: '#f59e0b', N: '#22c55e', G: '#3b82f6', O: '#a855f7' };
+            const cor = cores[letra] || '#ffd700';
+
+            for (let i = 0; i < 30; i++) {
+                const p = document.createElement('div');
+                p.className = 'particula';
+                const size = 8 + Math.random() * 15;
+                p.style.width = size + 'px';
+                p.style.height = size + 'px';
+                p.style.background = cor;
+                p.style.boxShadow = '0 0 ' + (size/2) + 'px ' + cor;
+                const angle = (Math.PI * 2 / 30) * i;
+                const dist = 150 + Math.random() * 250;
+                p.style.setProperty('--tx', (Math.cos(angle) * dist) + 'px');
+                p.style.setProperty('--ty', (Math.sin(angle) * dist) + 'px');
+                p.style.animation = 'particleExplode ' + (0.8 + Math.random() * 0.5) + 's ease-out forwards';
+                container.appendChild(p);
+            }
+
+            const estrelas = ['⭐', '✨', '🌟'];
+            for (let i = 0; i < 10; i++) {
+                const e = document.createElement('div');
+                e.className = 'estrela';
+                e.textContent = estrelas[Math.floor(Math.random() * estrelas.length)];
+                e.style.left = (30 + Math.random() * 40) + '%';
+                e.style.top = (30 + Math.random() * 40) + '%';
+                e.style.animationDuration = (1 + Math.random()) + 's';
+                e.style.animationDelay = (Math.random() * 0.3) + 's';
+                container.appendChild(e);
+            }
+        }
+
+        function criarOndasExpansao(letra) {
+            const container = document.getElementById('particulas');
+            const cores = { B: '#ef4444', I: '#f59e0b', N: '#22c55e', G: '#3b82f6', O: '#a855f7' };
+            const cor = cores[letra] || '#ffd700';
+            for (let i = 0; i < 3; i++) {
+                const o = document.createElement('div');
+                o.className = 'onda';
+                o.style.borderColor = cor;
+                o.style.animationDelay = (i * 0.3) + 's';
+                container.appendChild(o);
+            }
+        }
+
+        function tocarSomSuspense() {
+            try {
+                const ctx = initAudio();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(100, ctx.currentTime);
+                osc.frequency.linearRampToValueAtTime(300, ctx.currentTime + 3);
+                gain.gain.setValueAtTime(0.1, ctx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.2, ctx.currentTime + 2.5);
+                gain.gain.linearRampToValueAtTime(0.01, ctx.currentTime + 3.5);
+                osc.start(ctx.currentTime);
+                osc.stop(ctx.currentTime + 3.5);
+            } catch (e) {}
+        }
+
+        function tocarSomNumero() {
+            try {
+                const ctx = initAudio();
+                [523, 659, 784, 1047, 1319, 1568].forEach((freq, i) => {
+                    setTimeout(() => {
+                        const osc = ctx.createOscillator();
+                        const gain = ctx.createGain();
+                        osc.connect(gain);
+                        gain.connect(ctx.destination);
+                        osc.type = 'square';
+                        osc.frequency.value = freq;
+                        gain.gain.setValueAtTime(0.25, ctx.currentTime);
+                        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
+                        osc.start(ctx.currentTime);
+                        osc.stop(ctx.currentTime + 0.2);
+                    }, i * 80);
+                });
+            } catch (e) {}
+        }
+
+        function tocarSomVitoria() {
+            try {
+                const ctx = initAudio();
+                [[523,659,784], [587,740,880], [659,830,988], [784,988,1175], [523,659,784,1047]].forEach((acorde, i) => {
+                    setTimeout(() => {
+                        acorde.forEach(freq => {
+                            const osc = ctx.createOscillator();
+                            const gain = ctx.createGain();
+                            osc.connect(gain);
+                            gain.connect(ctx.destination);
+                            osc.frequency.value = freq;
+                            gain.gain.setValueAtTime(0.2, ctx.currentTime);
+                            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
+                            osc.start(ctx.currentTime);
+                            osc.stop(ctx.currentTime + 0.4);
+                        });
+                    }, i * 200);
+                });
+            } catch (e) {}
+        }
+
+        // === GLOBO ===
+        function criarBolasGlobo() {
+            const e = document.getElementById('globoInterior');
+            const cores = { B: 'bola-b', I: 'bola-i', N: 'bola-n', G: 'bola-g', O: 'bola-o' };
+            e.innerHTML = '';
+            for (let i = 0; i < 18; i++) {
+                const b = document.createElement('div');
+                b.className = 'bola-bingo';
+                const l = ['B', 'I', 'N', 'G', 'O'][Math.floor(Math.random() * 5)];
+                b.classList.add(cores[l]);
+                b.style.top = (10 + Math.random() * 70) + '%';
+                b.style.left = (10 + Math.random() * 70) + '%';
+                const num = l === 'B' ? Math.floor(Math.random() * 15) + 1 : l === 'I' ? Math.floor(Math.random() * 15) + 16 : l === 'N' ? Math.floor(Math.random() * 15) + 31 : l === 'G' ? Math.floor(Math.random() * 15) + 46 : Math.floor(Math.random() * 15) + 61;
+                b.textContent = num;
+                e.appendChild(b);
+            }
+        }
+
+        function animarBolasGlobo() {
+            if (animacaoGiroInterval) return;
+            const bolas = document.querySelectorAll('.bola-bingo');
+            animacaoGiroInterval = setInterval(() => {
+                bolas.forEach(b => { b.style.transition = 'all .08s ease-out'; b.style.top = (5 + Math.random() * 80) + '%'; b.style.left = (5 + Math.random() * 80) + '%'; });
+            }, 80);
+        }
+
+        function pararAnimacaoBolas() { if (animacaoGiroInterval) { clearInterval(animacaoGiroInterval); animacaoGiroInterval = null; } }
+
+        // === SORTEIO ===
+        async function iniciarSorteio() {
+            if (salaAtualData.girando) { await pararESortear(); }
+            else { await db.ref('salas/' + salaAtual).update({ girando: true, faseAnimacao: 'girando' }); }
+        }
+
+        async function pararESortear() {
+            const disp = [];
+            for (let i = 1; i <= 75; i++) { if (!numerosSorteados.includes(i)) disp.push(i); }
+            if (!disp.length) { showToast('🎉 Todos sorteados!'); await db.ref('salas/' + salaAtual).update({ girando: false, faseAnimacao: 'idle' }); return; }
+            
+            const num = disp[Math.floor(Math.random() * disp.length)];
+            const let_ = getLetra(num);
+            ultimoNumero = num;
+            ultimaLetra = let_;
+            
+            console.log('Sorteado:', let_, num);
+            
+            // FASE 1: Mostrar letra
+            await db.ref('salas/' + salaAtual).update({ girando: false, letraAtual: let_, faseAnimacao: 'letra' });
+            
+            // FASE 2: Após 3.5s mostrar número
+            setTimeout(async () => {
+                await db.ref('salas/' + salaAtual).update({ numeroAtual: num, faseAnimacao: 'numero', numerosSorteados: [...numerosSorteados, num] });
+                
+                // FASE 3: Após 5s esconder
+                setTimeout(async () => {
+                    await db.ref('salas/' + salaAtual).update({ numeroAtual: null, letraAtual: null, faseAnimacao: 'idle' });
+                }, TEMPO_MOSTRAR_NUMERO);
+            }, TEMPO_MOSTRAR_LETRA);
+        }
+
+        function mostrarUltimoNumero() {
+            if (!ultimoNumero || !ultimaLetra) { showToast('Nenhum número sorteado ainda!'); return; }
+            mostrarNumero(ultimoNumero, ultimaLetra);
+            setTimeout(() => { esconderAnimacao(); }, 4000);
+        }
+
+        // === ALERTAS ===
+        function renderizarAlertasTopo(alertas) {
+            const sec = document.getElementById('alertasTopo');
+            const lst = document.getElementById('alertasTopoLista');
+            if (!alertas.length) { sec.classList.remove('active'); return; }
+            sec.classList.add('active');
+            lst.innerHTML = alertas.map(([id, a]) => '<div class="alerta-topo-item"><img class="alerta-topo-foto" src="' + (a.foto || getDefaultAvatar()) + '"><div class="alerta-topo-info"><div class="alerta-topo-nome">' + a.jogadorNome + '</div><div class="alerta-topo-cartela">Cartela ' + (a.cartelaIndex + 1) + '</div></div><div class="alerta-topo-buttons"><button class="alerta-topo-btn verificar" onclick="verificarBingo(\'' + a.jogadorId + '\',' + a.cartelaIndex + ',\'' + id + '\')">✅</button><button class="alerta-topo-btn ignorar" onclick="ignorarBingo(\'' + id + '\')">❌</button></div></div>').join('');
+        }
+
+        async function verificarBingo(jId, cIdx, aId) {
+            showLoading();
+            try {
+                const snap = await db.ref('jogadores/' + jId).once('value');
+                const j = snap.val();
+                if (!j?.cartelas) { showToast('❌ Não encontrado'); hideLoading(); return; }
+                const cart = j.cartelas[cIdx];
+                const marc = cart.marcados || [];
+                const perd = [];
+                cart.numeros.flat().filter(n => n !== 0).forEach(n => { if (numerosSorteados.includes(n) && !marc.includes(n)) perd.push(n); });
+                const seq = verificarSequencias(cart.numeros, marc);
+                renderizarVerificacao(j, cart, marc, perd, seq, aId);
+            } catch (e) { showToast('❌ ' + e.message); }
+            hideLoading();
+        }
+
+        function verificarSequencias(nums, marc) {
+            const s = { linhas: [], colunas: [], diagonais: [], cruzada: false, cartelaCheia: true, tipoVitoria: null };
+            for (let i = 0; i < 5; i++) { if (nums[i].every(n => n === 0 || marc.includes(n))) s.linhas.push(i); }
+            for (let c = 0; c < 5; c++) { if (nums.map(l => l[c]).every(n => n === 0 || marc.includes(n))) s.colunas.push(c); }
+            if ([nums[0][0], nums[1][1], nums[2][2], nums[3][3], nums[4][4]].every(n => n === 0 || marc.includes(n))) s.diagonais.push('d1');
+            if ([nums[0][4], nums[1][3], nums[2][2], nums[3][1], nums[4][0]].every(n => n === 0 || marc.includes(n))) s.diagonais.push('d2');
+            if (s.diagonais.length === 2) s.cruzada = true;
+            s.cartelaCheia = nums.flat().filter(n => n !== 0).every(n => marc.includes(n));
+            if (s.cartelaCheia) s.tipoVitoria = '🏆 CARTELA CHEIA';
+            else if (s.cruzada) s.tipoVitoria = '✖️ Cruzada';
+            else if (s.diagonais.length) s.tipoVitoria = '↗️ Diagonal';
+            else if (s.linhas.length) s.tipoVitoria = '➖ Linha';
+            else if (s.colunas.length) s.tipoVitoria = '| Coluna';
+            return s;
+        }
+
+        function renderizarVerificacao(j, cart, marc, perd, seq, aId) {
+            document.getElementById('verificacaoNome').innerHTML = '<strong>' + j.nome + ' ' + j.sobrenome + '</strong> - Cartela ' + cart.id;
+            const g = document.getElementById('verificacaoCartela');
+            g.innerHTML = '<div class="verificacao-header">B</div><div class="verificacao-header">I</div><div class="verificacao-header">N</div><div class="verificacao-header">G</div><div class="verificacao-header">O</div>';
+            for (let r = 0; r < 5; r++) {
+                for (let c = 0; c < 5; c++) {
+                    const n = cart.numeros[r][c];
+                    let cls = 'verificacao-cell';
+                    if (n === 0) cls += ' coringa';
+                    else if (marc.includes(n)) cls += ' marcado-correto';
+                    else if (numerosSorteados.includes(n)) cls += ' nao-marcou';
+                    if (seq.linhas.includes(r) || seq.colunas.includes(c) || (seq.diagonais.includes('d1') && r === c) || (seq.diagonais.includes('d2') && r + c === 4)) cls += ' sequencia';
+                    g.innerHTML += '<div class="' + cls + '">' + (n === 0 ? '⭐' : n) + '</div>';
+                }
+            }
+            const res = document.getElementById('resultadoVerificacao');
+            const tem = seq.linhas.length || seq.colunas.length || seq.diagonais.length || seq.cartelaCheia;
+            const valido = !perd.length && tem;
+            if (valido) {
+                res.className = 'resultado-verificacao valido';
+                res.innerHTML = '<h3 class="resultado-titulo" style="color:var(--green)">✅ BINGO VÁLIDO!</h3><p style="font-size:1.3rem">' + seq.tipoVitoria + '</p>' + (seq.cartelaCheia ? '<p style="color:var(--yellow);font-size:1.1rem;margin-top:10px">🏆 SUPER PRÊMIO - FIM DO JOGO!</p>' : '');
+            } else {
+                res.className = 'resultado-verificacao invalido';
+                res.innerHTML = '<h3 class="resultado-titulo" style="color:var(--red)">❌ BINGO INVÁLIDO!</h3>' + (perd.length ? '<p>Perdeu ' + perd.length + ' número(s):</p><div class="numeros-perdidos-lista">' + perd.map(n => '<span class="numero-perdido">' + getLetra(n) + ' ' + n + '</span>').join('') + '</div>' : '<p>Sem sequência válida</p>');
+            }
+            document.getElementById('verificacaoButtons').innerHTML = valido ? '<button class="btn-vencedor" onclick="declararGanhador(\'' + j.nome + ' ' + j.sobrenome + '\',\'' + (j.foto || '') + '\',\'' + aId + '\',\'' + seq.tipoVitoria + '\',' + seq.cartelaCheia + ')">' + (seq.cartelaCheia ? '🏆 SUPER CAMPEÃO!' : '🎉 CONFIRMAR GANHADOR') + '</button><button class="btn-continuar" onclick="fecharModal(\'modalVerificacao\')">▶️ VOLTAR</button>' : '<button class="btn-continuar" onclick="fecharModal(\'modalVerificacao\');ignorarBingo(\'' + aId + '\')">▶️ CONTINUAR</button>';
+            document.getElementById('modalVerificacao').classList.add('active');
+        }
+
+        async function ignorarBingo(aId) { await db.ref('salas/' + salaAtual + '/alertasBingo/' + aId).remove(); }
+
+        async function declararGanhador(nome, foto, aId, tipo, isCartelaCheia) {
+            fecharModal('modalVerificacao');
+            const novoGanhador = { nome: nome, foto: foto, tipo: tipo, timestamp: Date.now() };
+            await db.ref('salas/' + salaAtual + '/ganhadores').set([...ganhadores, novoGanhador]);
+            await db.ref('salas/' + salaAtual + '/alertasBingo/' + aId).remove();
+            if (isCartelaCheia) {
+                await db.ref('salas/' + salaAtual).update({ jogando: false, superVencedor: { nome: nome, foto: foto } });
+                mostrarSuperVencedor({ nome: nome, foto: foto }, salaAtualData.premio);
+            } else { showToast('🎉 ' + nome + ' ganhou! Jogo continua...'); }
+        }
+
+        function mostrarSuperVencedor(v, premio) {
+            document.getElementById('vencedorNome').textContent = v.nome;
+            document.getElementById('vencedorFoto').src = v.foto || getDefaultAvatar();
+            if (premio) { document.getElementById('premioVencedor').style.display = 'flex'; document.getElementById('premioVencedorImg').src = premio; }
+            else { document.getElementById('premioVencedor').style.display = 'none'; }
+            document.getElementById('telaVitoria').classList.add('active');
+            criarConfetes();
+            tocarSomVitoria();
+        }
+
+        function criarConfetes() {
+            const cores = ['#ef4444', '#f59e0b', '#22c55e', '#3b82f6', '#a855f7', '#ffd700', '#ec4899', '#4ecdc4'];
+            const cont = document.getElementById('telaVitoria');
+            for (let i = 0; i < 150; i++) {
+                const c = document.createElement('div');
+                c.className = 'confetti';
+                c.style.left = Math.random() * 100 + '%';
+                c.style.background = cores[Math.floor(Math.random() * cores.length)];
+                c.style.animationDelay = Math.random() * 3 + 's';
+                c.style.animationDuration = (2 + Math.random() * 3) + 's';
+                c.style.width = c.style.height = (8 + Math.random() * 12) + 'px';
+                c.style.borderRadius = Math.random() > 0.5 ? '50%' : '0';
+                cont.appendChild(c);
+            }
+        }
+
+        async function novoJogo() {
+            document.querySelectorAll('.confetti').forEach(c => c.remove());
+            document.getElementById('telaVitoria').classList.remove('active');
+            await db.ref('salas/' + salaAtual).update({ jogando: true, girando: false, numeroAtual: null, letraAtual: null, faseAnimacao: 'idle', numerosSorteados: [], ganhadores: [], superVencedor: null, alertasBingo: null, reacoes: null });
+            const snap = await db.ref('jogadores').orderByChild('salaId').equalTo(salaAtual).once('value');
+            for (const [id, j] of Object.entries(snap.val() || {})) {
+                if (j.cartelas) {
+                    await db.ref('jogadores/' + id + '/cartelas').set(j.cartelas.map(c => ({ ...c, marcados: [0], totalMarcados: 1 })));
+                    await db.ref('jogadores/' + id + '/gritouBingo').set(false);
+                }
+            }
+            ultimoNumero = null; ultimaLetra = null;
+            showToast('🎰 Novo jogo!');
+        }
+
+        function mostrarReacao(r) {
+            const cont = document.getElementById('reacoesContainer');
+            const div = document.createElement('div');
+            div.className = 'reacao';
+            div.innerHTML = '<img class="reacao-foto" src="' + (r.foto || getDefaultAvatar()) + '"><span class="reacao-nome">' + r.nome + '</span><span class="reacao-icon">✅</span>';
+            cont.appendChild(div);
+            setTimeout(() => div.remove(), 3500);
+        }
+
+        function renderizarGrade() {
+            const c = document.getElementById('gradeNumeros');
+            let h = '<div class="letras-header"><div class="letra-col b">B</div><div class="letra-col i">I</div><div class="letra-col n">N</div><div class="letra-col g">G</div><div class="letra-col o">O</div></div><div class="numeros-colunas">';
+            [[1, 15, 'b'], [16, 30, 'i'], [31, 45, 'n'], [46, 60, 'g'], [61, 75, 'o']].forEach(([mi, ma, l]) => {
+                h += '<div class="coluna-numeros">';
+                for (let i = mi; i <= ma; i++) h += '<div class="numero-cell ' + (numerosSorteados.includes(i) ? 'sorteado ' + l : '') + '">' + i + '</div>';
+                h += '</div>';
+            });
+            c.innerHTML = h + '</div>';
+        }
+
+        function voltarInicio() {
+            salaAtual = null; salaAtualData = null;
+            document.getElementById('telaInicial').style.display = 'grid';
+            document.getElementById('telaJogo').classList.remove('active');
+            document.getElementById('alertasTopo').classList.remove('active');
+            pararAnimacaoBolas();
+            esconderAnimacao();
+        }
+
+        async function encerrarSala(sId) {
+            if (!confirm('⚠️ Encerrar sala?')) return;
+            showLoading();
+            try {
+                const snap = await db.ref('jogadores').orderByChild('salaId').equalTo(sId).once('value');
+                for (const id of Object.keys(snap.val() || {})) await db.ref('jogadores/' + id).remove();
+                await db.ref('salas/' + sId).update({ ativa: false });
+                showToast('✅ Encerrada!');
+            } catch (e) { showToast('❌ ' + e.message); }
+            hideLoading();
+        }
+
+        async function resetarTudo() {
+            if (!confirm('⚠️ APAGAR TUDO?')) return;
+            if (!confirm('🚨 CERTEZA?')) return;
+            showLoading();
+            try {
+                await db.ref('salas').remove();
+                await db.ref('jogadores').remove();
+                if (salaAtual) voltarInicio();
+                showToast('✅ Resetado!');
+            } catch (e) { showToast('❌ ' + e.message); }
+            hideLoading();
+        }
+    </script>
+</body>
+</html>
